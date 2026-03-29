@@ -1,0 +1,20 @@
+/*******************************************************************
+ * File:        text
+ * Purpose:     Text operation stubs for VideoV
+ * Author:      Gerph
+ * Date:        29 Mar 2026
+ ******************************************************************/
+
+#ifndef TEXT_H
+#define TEXT_H
+
+#include "context.h"
+
+void text_change_destination(vcontext_t *vcx, void *base, int linelength, int maxheight, int log2bpp, int modeflags);
+void text_define_char(vcontext_t *vcx, int char_code, void *data);
+void text_set_text_colour(vcontext_t *vcx, int fg, int bg, int log2bpp);
+void text_write_text_char(vcontext_t *vcx, int char_code, void *addr, int x, int y);
+void text_text_cursor(vcontext_t *vcx, int type, void *addr, int x, int y);
+void text_clear_box(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, void *base, int linelength, int log2bpp, int modeflags);
+
+#endif

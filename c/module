@@ -20,6 +20,8 @@
 
 #include "modhead.h"
 #include "context.h"
+#include "text.h"
+#include "graf.h"
 
 #define DEBUG
 
@@ -67,8 +69,6 @@ _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
  **************************************************************************/
 _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
 {
-    int display;
-
     dprintf("Module VideoSW dying\n");
 
     _swix(OS_Release, _INR(0, 2), VideoV, videov_entry, pw);
@@ -94,11 +94,14 @@ int videov(_kernel_swi_regs * r, void *pw)
     int reason = r->r[8];
     vcontext_t *vcx;
 
-#ifndef VideoV_Graphics
-#define VideoV_Graphics 0x000
-#endif
-
-    if ((reason & ~0xFF) != VideoV_Graphics)
+    /* Handle reason codes in groups:
+     * 0x000 - 0x00F: Text
+     * 0x010 - 0x1FF: Graphics
+     * 0x200 - 0x2FF: Pointer
+     * 0x300 - 0x3FF: Mode
+     * 0x400 - 0x4FF: Teletext
+     */
+    if (reason > 0x1FF)
         return VECTOR_PASSON;
 
     vcx = vcxd_find(display);
@@ -107,8 +110,147 @@ int videov(_kernel_swi_regs * r, void *pw)
 
     switch (reason)
     {
-            /* Cases for VideoV_Text_* */
-            /* Cases for VideoV_Graf_* */
+        /* Text Operations */
+        case VideoV_Text_ChangeDestination:
+            text_change_destination(vcx, (void *)r->r[0], r->r[1], r->r[2], r->r[3], r->r[4]);
+            break;
+
+        case VideoV_Text_DefineChar:
+            text_define_char(vcx, r->r[0], (void *)r->r[1]);
+            break;
+
+        case VideoV_Text_SetTextColour:
+            text_set_text_colour(vcx, r->r[0], r->r[1], r->r[2]);
+            break;
+
+        case VideoV_Text_WriteTextChar:
+            text_write_text_char(vcx, r->r[0], (void *)r->r[1], r->r[2], r->r[3]);
+            return VECTOR_PASSON;
+
+        case VideoV_Text_TextCursor:
+            text_text_cursor(vcx, r->r[0], (void *)r->r[1], r->r[2], r->r[3]);
+            break;
+
+        case VideoV_Text_ClearBox:
+            {
+                int *coords = (int *)r->r[0];
+                text_clear_box(vcx, coords[0], coords[1], coords[2], coords[3], (void *)r->r[1], r->r[2], r->r[3], r->r[4]);
+            }
+            break;
+
+        /* Graphics Operations */
+        case VideoV_Graf_SetColour1:
+            graf_set_colour1(vcx, r->r[0], (unsigned int *)r->r[1]);
+            break;
+
+        case VideoV_Graf_SetColour2:
+            graf_set_colour2(vcx, r->r[0], (unsigned int *)r->r[1]);
+            break;
+
+        case VideoV_Graf_ChangeDestination:
+            graf_change_destination(vcx, (int *)r->r[0], r->r[1]);
+            break;
+
+        case VideoV_Graf_ChangeBase:
+            graf_change_base(vcx, (void *)r->r[0]);
+            break;
+
+        case VideoV_Graf_ReadPrimitives:
+            graf_read_primitives(vcx, (void **)r->r[0], (void **)r->r[1], (void **)r->r[2]);
+            break;
+
+        case VideoV_Graf_Rectangle:
+            {
+                int *coords = (int *)r->r[0];
+                graf_rectangle(vcx, coords[0], coords[1], coords[2], coords[3], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_Triangle:
+            {
+                int *coords = (int *)r->r[0];
+                graf_triangle(vcx, coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_Parallelogram:
+            {
+                int *coords = (int *)r->r[0];
+                graf_parallelogram(vcx, coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_BlockCopy:
+            {
+                int *coords = (int *)r->r[0];
+                graf_block_copy(vcx, coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], coords[6], coords[7], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_CircleOutline:
+            {
+                int *coords = (int *)r->r[0];
+                graf_circle_outline(vcx, coords[0], coords[1], coords[2], coords[3], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_CircleFill:
+            {
+                int *coords = (int *)r->r[0];
+                graf_circle_fill(vcx, coords[0], coords[1], coords[2], coords[3], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_CircleArc:
+            {
+                int *coords = (int *)r->r[0];
+                graf_circle_arc(vcx, coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_CircleSegment:
+            {
+                int *coords = (int *)r->r[0];
+                graf_circle_segment(vcx, coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_CircleSector:
+            {
+                int *coords = (int *)r->r[0];
+                graf_circle_sector(vcx, coords[0], coords[1], coords[2], coords[3], coords[4], coords[5], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_EllipseOutline:
+            {
+                int *coords = (int *)r->r[0];
+                graf_ellipse_outline(vcx, coords[0], coords[1], coords[2], coords[4], coords[5], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_EllipseFill:
+            {
+                int *coords = (int *)r->r[0];
+                graf_ellipse_fill(vcx, coords[0], coords[1], coords[2], coords[4], coords[5], r->r[6], (void *)r->r[7]);
+            }
+            break;
+
+        case VideoV_Graf_FillRight:
+            graf_fill_right(vcx, r->r[0], r->r[1], r->r[2], r->r[3], r->r[6], (void *)r->r[7]);
+            break;
+
+        case VideoV_Graf_FillLeftAndRight:
+            graf_fill_left_right(vcx, r->r[0], r->r[1], r->r[2], r->r[3], r->r[6], (void *)r->r[7]);
+            break;
+
+        case VideoV_Graf_FillFlood:
+            graf_fill_flood(vcx, r->r[0], r->r[1], r->r[2], r->r[3], r->r[6], (void *)r->r[7]);
+            break;
+
+        case VideoV_Graf_PolyHLine:
+            graf_poly_hline(vcx, (void *)r->r[0], r->r[6], (void *)r->r[7]);
+            break;
 
         default:
             return VECTOR_PASSON;

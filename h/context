@@ -11,11 +11,20 @@
 /* Our video context */
 typedef struct vcontext_s
 {
+    void *base;
+    int linelength;
+    int log2bpp;
+    int modeflags;
+
     int scrwidth, scrheight;
     int textwidth, textheight;
     int scrxeig, scryeig;
     int charx, chary;
     int cursorx, cursory, cursorcx, cursorcy;
+
+    int fg_colour, bg_colour;
+    int action1, action2;
+    unsigned int pattern1[8], pattern2[8];
 } vcontext_t;
 
 

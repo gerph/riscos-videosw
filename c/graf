@@ -1,0 +1,172 @@
+/*******************************************************************
+ * File:        graf
+ * Purpose:     Graphics operation implementation stubs
+ * Author:      Gerph
+ * Date:        29 Mar 2026
+ ******************************************************************/
+
+#include <string.h>
+#include "graf.h"
+
+void graf_set_colour1(vcontext_t *vcx, int action, unsigned int *pattern)
+{
+    vcx->action1 = action;
+    if (pattern)
+        memcpy(vcx->pattern1, pattern, sizeof(vcx->pattern1));
+
+    /* Store the primary drawing colour pattern.
+     * The pattern is an 8-word block (for ECFs).
+     * 'action' defines how the colour is applied (e.g., OR, EOR).
+     */
+}
+
+void graf_set_colour2(vcontext_t *vcx, int action, unsigned int *pattern)
+{
+    vcx->action2 = action;
+    if (pattern)
+        memcpy(vcx->pattern2, pattern, sizeof(vcx->pattern2));
+
+    /* Store the secondary drawing colour pattern.
+     * This is used for background or fill operations.
+     */
+}
+
+void graf_change_destination(vcontext_t *vcx, int *block, int is_sprite)
+{
+    /* Update context from information block:
+     * block[0]: Mode flags
+     * block[1]: Width - 1 (pixels)
+     * block[2]: Height - 1 (pixels)
+     * block[3]: Log2BPP
+     * block[4]: XEig
+     * block[5]: YEig
+     * block[6]: Base address
+     * block[7]: Row stride (bytes)
+     */
+    vcx->modeflags = block[0];
+    vcx->scrwidth = block[1] + 1;
+    vcx->scrheight = block[2] + 1;
+    vcx->log2bpp = block[3];
+    vcx->scrxeig = block[4];
+    vcx->scryeig = block[5];
+    vcx->base = (void *)block[6];
+    vcx->linelength = block[7];
+
+    /* This prepares the graphics driver for drawing to a new destination.
+     * If is_sprite is non-zero, redirection is to a sprite.
+     */
+}
+
+void graf_change_base(vcontext_t *vcx, void *base)
+{
+    vcx->base = base;
+
+    /* Update only the base address of the current output buffer.
+     * This happens when bank switching or similar occurs.
+     */
+}
+
+void graf_read_primitives(vcontext_t *vcx, void **hline, void **point, void **vline)
+{
+    /* Provide optimized handler functions for basic primitives.
+     * The handlers should follow the r12-function pointer protocol.
+     */
+}
+
+void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int colour_op, void *context)
+{
+    /* Fill a rectangle with specified boundaries.
+     * 'colour_op' defines which colour (1, 2, or Invert) to use.
+     * 'context' is the graphics context (clipping, primitives).
+     * The coordinates are inclusive (xmin to xmax).
+     */
+}
+
+void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, void *context)
+{
+    /* Render a filled triangle using the specified vertices.
+     * This is a primitive that might be hardware accelerated.
+     */
+}
+
+void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, void *context)
+{
+    /* Render a filled parallelogram defined by three vertices.
+     * The fourth vertex is implicit: (x0 + (x2 - x1), y0 + (y2 - y1)).
+     */
+}
+
+void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int src_y1, int dst_x0, int dst_y0, int dst_x1, int dst_y1, int colour_op, void *context)
+{
+    /* Copy a rectangular region from source to destination.
+     * This might involve handling overlapping regions if source and destination
+     * are in the same buffer.
+     */
+}
+
+void graf_circle_outline(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, void *context)
+{
+    /* Render the outline of a circle centered at (xc, yc) with edge at (xe, ye).
+     */
+}
+
+void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, void *context)
+{
+    /* Render a filled circle centered at (xc, yc) with edge at (xe, ye).
+     */
+}
+
+void graf_circle_arc(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
+{
+    /* Render a circle arc anti-clockwise from (xs, ys) to (xe, ye).
+     */
+}
+
+void graf_circle_segment(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
+{
+    /* Render a filled circle segment.
+     */
+}
+
+void graf_circle_sector(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
+{
+    /* Render a filled circle sector (pie slice).
+     */
+}
+
+void graf_ellipse_outline(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, void *context)
+{
+    /* Render the outline of an ellipse.
+     */
+}
+
+void graf_ellipse_fill(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, void *context)
+{
+    /* Render a filled ellipse.
+     */
+}
+
+void graf_fill_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
+{
+    /* Fill right from (x, y) until delim_colour is hit (or not hit if delim_cond set).
+     */
+}
+
+void graf_fill_left_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
+{
+    /* Fill left and right from (x, y) until delimiting conditions.
+     */
+}
+
+void graf_fill_flood(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
+{
+    /* Flood fill starting from (x, y).
+     */
+}
+
+void graf_poly_hline(vcontext_t *vcx, void *buffer, int colour_op, void *context)
+{
+    /* Render multiple horizontal lines from the provided buffer.
+     * Buffer format: [count, [x_left, y, x_right], ...]
+     */
+}

@@ -37,7 +37,9 @@ CDEFINES   =
 # Objects to build, using the format o.<name> (will be varied for build type)
 OBJS       = o.modhead \
 			 o.module \
-			 o.context
+			 o.context \
+			 o.text \
+			 o.graf
 
 # By default we don't build Fortify in.
 # To include fortify in your module, #include "fortify.h" at the top of your C files
@@ -48,7 +50,10 @@ FORTIFY    = no
 include CModule
 
 # Additional dependencies
-$(OZDIR).module: h.modhead
+$(OZDIR).module: h.modhead h.text h.graf
+$(OZDIR).context: h.context
+$(OZDIR).text: h.text h.context
+$(OZDIR).graf: h.graf h.context
 
 # Export rules
 # For any files you export with EXPORTS you may need to include an

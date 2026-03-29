@@ -1,0 +1,75 @@
+/*******************************************************************
+ * File:        text
+ * Purpose:     Text operation implementation stubs
+ * Author:      Gerph
+ * Date:        29 Mar 2026
+ ******************************************************************/
+
+#include <string.h>
+#include "text.h"
+
+void text_change_destination(vcontext_t *vcx, void *base, int linelength, int maxheight, int log2bpp, int modeflags)
+{
+    /* Update context with new destination information */
+    vcx->base = base;
+    vcx->linelength = linelength;
+    vcx->textheight = maxheight;
+    vcx->log2bpp = log2bpp;
+    vcx->modeflags = modeflags;
+
+    /* This function should prepare the text rendering system for a new target buffer.
+     * It might involve clearing caches or updating pointers used for rendering.
+     */
+}
+
+void text_define_char(vcontext_t *vcx, int char_code, void *data)
+{
+    /* Store or update the bitmap for the given character code */
+    /* This character data is typically an 8x8 bitmap (8 bytes).
+     * The driver should store this in a way that it can be quickly accessed
+     * during text_write_text_char.
+     */
+}
+
+void text_set_text_colour(vcontext_t *vcx, int fg, int bg, int log2bpp)
+{
+    vcx->fg_colour = fg;
+    vcx->bg_colour = bg;
+    vcx->log2bpp = log2bpp;
+
+    /* Update the cached foreground and background colours.
+     * The driver might pre-calculate expanded colour patterns for the current
+     * bit depth to speed up rendering.
+     */
+}
+
+void text_write_text_char(vcontext_t *vcx, int char_code, void *addr, int x, int y)
+{
+    vcx->charx = x;
+    vcx->chary = y;
+
+    /* Render the character at the specified address and coordinates.
+     * 'addr' is the memory address of the top-left of the character cell.
+     * The character bitmap (defined by text_define_char) should be drawn
+     * using the current foreground and background colours.
+     */
+}
+
+void text_text_cursor(vcontext_t *vcx, int type, void *addr, int x, int y)
+{
+    vcx->cursorx = x;
+    vcx->cursory = y;
+
+    /* Render or update the text cursor.
+     * 'type' defines the cursor style (e.g., block, underline).
+     * The driver should typically XOR the cursor shape at 'addr'.
+     */
+}
+
+void text_clear_box(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, void *base, int linelength, int log2bpp, int modeflags)
+{
+    /* Clear a rectangular region of the screen for text.
+     * The region is defined by (xmin, ymin) to (xmax, ymax) in text coordinates.
+     * The area should be filled with the current background colour.
+     */
+}
