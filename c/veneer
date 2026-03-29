@@ -1,34 +1,67 @@
 /*******************************************************************
- * File:        module
- * Purpose:     VideoSW module interface
- * Author:      Gerph
+ * File:     veneer
+ * Purpose:  Veneer to the internal TTX functions
+ * Author:   Justin Fletcher
+ * Date:     13 Jun 2006
  ******************************************************************/
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-#include "kernel.h"
-#include "swis.h"
-
 #include "riscos/Vectors.h"
 #include "riscos/VideoV.h"
 #include "riscos/ModeVariables.h"
 #include "riscos/OSScreenMode.h"
-
+#include "modhead.h"
+#include "swis.h"
 #include "fortify.h"
 
-#include "modhead.h"
-#include "context.h"
+/* Our teletext context */
+typedef struct vcontext_s {
+  int scrwidth, scrheight;
+  int textwidth, textheight;
+  int scrxeig, scryeig;
+  int charx, chary;
+  int cursorx, cursory, cursorcx, cursorcy;
+} vcontext_t;
 
-#define DEBUG
+static int maxvcx = 0;
+static vcontext_t *vcxd = NULL;
 
-#ifdef DEBUG
-#define dprintf if (1) printf
-#else
-#define dprintf if (0) printf
-#endif
+#define STATE_FLASH (1<<0)
 
+/*************************************************** Gerph *********
+ Function:     vcxd_find
+ Description:  Find the context structure for a given display
+ Parameters:   display = the display number
+ Returns:      pointer to video context structure, or NULL if cannot allocate
+ ******************************************************************/
+vcontext_t *vcxd_find(int display)
+{
+  vcontext_t *newvcxd;
+  if (display < 0)
+    return NULL;
+
+  if (display < maxvcx)
+    return &vcxd[display];
+
+  /* Lazy extension by 2 entries at a time */
+  while (display >= maxvcx)
+  {
+    newvcxd = realloc(vcxd, sizeof(vcontext_t) * (maxvcx+2));
+    if (newvcxd == NULL)
+      return NULL; /* Cannot allocate - give up */
+
+    /* Zero the new entries */
+    memset(&newvcxd[maxvcx], 0, sizeof(vcontext_t));
+    memset(&newvcxd[maxvcx+1], 0, sizeof(vcontext_t));
+
+    vcxd = newvcxd;
+    maxvcx+=2;
+  }
+
+  return &vcxd[display];
+}
 
 /***************************************************************************
  * Function:     Mod_Init
@@ -44,12 +77,12 @@
  **************************************************************************/
 _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
 {
-    _kernel_oserror *err;
+  unsigned long flags;
+  _kernel_oserror *err;
 
-    err = _swix(OS_Claim, _INR(0, 2), VideoV, videov_entry, pw);
+  err = _swix(OS_Claim, _INR(0,2), VideoV, videov_entry, pw);
 
-    dprintf("Module VideoSW initialised\n");
-    return err;
+  return err;
 }
 
 
@@ -67,17 +100,22 @@ _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
  **************************************************************************/
 _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
 {
-    int display;
+  int display;
 
-    dprintf("Module VideoSW dying\n");
+  _swix(OS_Release, _INR(0,2), VideoV, videov_entry, pw);
 
-    _swix(OS_Release, _INR(0, 2), VideoV, videov_entry, pw);
-
-    vcxd_final();
-
-    return NULL;
+  for (display=0; display<maxvcx; display++)
+  {
+    vcontext_t *vcx = &vcxd[display];
+    /* Destroy any other contexts */
+  }
+  free(vcxd);
+  return NULL;
 }
 
+
+/* The display we're currently in */
+static vcontext_t *reent_invcx = NULL;
 
 /***************************************************************************
  * Function:     videov
@@ -88,31 +126,31 @@ _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
  *               Return VECTOR_PASS to claim (return via stack)
  *               Return VECTOR_CLAIM to pass on (return via r14)
  **************************************************************************/
-int videov(_kernel_swi_regs * r, void *pw)
+int videov(_kernel_swi_regs *r, void *pw)
 {
-    int display = r->r[7];
-    int reason = r->r[8];
-    vcontext_t *vcx;
+  int display = r->r[7];
+  int reason = r->r[8];
+  vcontext_t *vcx;
 
 #ifndef VideoV_Graphics
 #define VideoV_Graphics 0x000
 #endif
 
-    if ((reason & ~0xFF) != VideoV_Graphics)
-        return VECTOR_PASSON;
+  if ((reason &~0xFF) != VideoV_Graphics)
+    return VECTOR_PASSON;
 
-    vcx = vcxd_find(display);
-    if (vcx == NULL)
-        return VECTOR_PASSON;
+  vcx = vcxd_find(display);
+  if (vcx == NULL)
+    return VECTOR_PASSON;
 
-    switch (reason)
-    {
-            /* Cases for VideoV_Text_* */
-            /* Cases for VideoV_Graf_* */
+  switch (reason)
+  {
+    /* Cases for VideoV_Text_* */
+    /* Cases for VideoV_Graf_* */
 
-        default:
-            return VECTOR_PASSON;
-    }
+    default:
+      return VECTOR_PASSON;
+  }
 
-    return VECTOR_CLAIM;
+  return VECTOR_CLAIM;
 }

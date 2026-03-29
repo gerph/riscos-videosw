@@ -1,0 +1,65 @@
+/*******************************************************************
+ * File:        context
+ * Purpose:     Video context structure for display or output
+ * Author:      Gerph
+ * Date:        29 Mar 2026
+ ******************************************************************/
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "context.h"
+
+static int maxvcx = 0;
+static vcontext_t *vcxd = NULL;
+
+/*************************************************** Gerph *********
+ Function:      vcxd_final
+ Description:   Shutdown the Video Context Display information
+ Parameters:    none
+ Returns:       none
+ ******************************************************************/
+void vcxd_final(void)
+{
+    int display;
+    for (display = 0; display < maxvcx; display++)
+    {
+        vcontext_t *vcx = &vcxd[display];
+        /* Destroy any other contexts */
+    }
+    free(vcxd);
+    vcxd = NULL;
+}
+
+/*************************************************** Gerph *********
+ Function:     vcxd_find
+ Description:  Find the context structure for a given display
+ Parameters:   display = the display number
+ Returns:      pointer to video context structure, or NULL if cannot allocate
+ ******************************************************************/
+vcontext_t *vcxd_find(int display)
+{
+    vcontext_t *newvcxd;
+    if (display < 0)
+        return NULL;
+
+    if (display < maxvcx)
+        return &vcxd[display];
+
+    /* Lazy extension by 2 entries at a time */
+    while (display >= maxvcx)
+    {
+        newvcxd = realloc(vcxd, sizeof(vcontext_t) * (maxvcx + 2));
+        if (newvcxd == NULL)
+            return NULL;        /* Cannot allocate - give up */
+
+        /* Zero the new entries */
+        memset(&newvcxd[maxvcx], 0, sizeof(vcontext_t));
+        memset(&newvcxd[maxvcx + 1], 0, sizeof(vcontext_t));
+
+        vcxd = newvcxd;
+        maxvcx += 2;
+    }
+
+    return &vcxd[display];
+}

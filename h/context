@@ -1,0 +1,38 @@
+/*******************************************************************
+ * File:        context
+ * Purpose:     Video context for the display or output
+ * Author:      Gerph
+ * Date:        29 Mar 2026
+ ******************************************************************/
+
+#ifndef CONTEXT_H
+#define CONTEXT_H
+
+/* Our video context */
+typedef struct vcontext_s
+{
+    int scrwidth, scrheight;
+    int textwidth, textheight;
+    int scrxeig, scryeig;
+    int charx, chary;
+    int cursorx, cursory, cursorcx, cursorcy;
+} vcontext_t;
+
+
+/*************************************************** Gerph *********
+ Function:      vcxd_final
+ Description:   Shutdown the Video Context Display information
+ Parameters:    none
+ Returns:       none
+ ******************************************************************/
+void vcxd_final(void);
+
+/*************************************************** Gerph *********
+ Function:     vcxd_find
+ Description:  Find the context structure for a given display
+ Parameters:   display = the display number
+ Returns:      pointer to video context structure, or NULL if cannot allocate
+ ******************************************************************/
+vcontext_t *vcxd_find(int display);
+
+#endif
