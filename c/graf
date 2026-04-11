@@ -6,10 +6,22 @@
  ******************************************************************/
 
 #include <string.h>
+#include <stdio.h>
+
 #include "graf.h"
+
+#define DEBUG
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
 
 void graf_set_colour1(vcontext_t *vcx, int action, unsigned int *pattern)
 {
+    dprintf("Graf_SetColour1: action=%d pattern=%p\n", action, pattern);
+
     vcx->action1 = action;
     if (pattern)
         memcpy(vcx->pattern1, pattern, sizeof(vcx->pattern1));
@@ -22,6 +34,8 @@ void graf_set_colour1(vcontext_t *vcx, int action, unsigned int *pattern)
 
 void graf_set_colour2(vcontext_t *vcx, int action, unsigned int *pattern)
 {
+    dprintf("Graf_SetColour2: action=%d pattern=%p\n", action, pattern);
+
     vcx->action2 = action;
     if (pattern)
         memcpy(vcx->pattern2, pattern, sizeof(vcx->pattern2));
@@ -33,6 +47,14 @@ void graf_set_colour2(vcontext_t *vcx, int action, unsigned int *pattern)
 
 void graf_change_destination(vcontext_t *vcx, int *block, int is_sprite)
 {
+    dprintf("Graf_ChangeDestination: block=%p is_sprite=%d\n", block, is_sprite);
+    if (block)
+    {
+        dprintf("  modeflags=%d width=%d height=%d log2bpp=%d xeig=%d yeig=%d\n",
+                block[0], block[1] + 1, block[2] + 1, block[3], block[4], block[5]);
+        dprintf("  base=%p rowstride=%d\n", (void *)block[6], block[7]);
+    }
+
     /* Update context from information block:
      * block[0]: Mode flags
      * block[1]: Width - 1 (pixels)
@@ -59,6 +81,8 @@ void graf_change_destination(vcontext_t *vcx, int *block, int is_sprite)
 
 void graf_change_base(vcontext_t *vcx, void *base)
 {
+    dprintf("Graf_ChangeBase: base=%p\n", base);
+
     vcx->base = base;
 
     /* Update only the base address of the current output buffer.
@@ -68,6 +92,8 @@ void graf_change_base(vcontext_t *vcx, void *base)
 
 void graf_read_primitives(vcontext_t *vcx, void **hline, void **point, void **vline)
 {
+    dprintf("Graf_ReadPrimitives: hline=%p point=%p vline=%p\n", hline, point, vline);
+
     /* Provide optimized handler functions for basic primitives.
      * The handlers should follow the r12-function pointer protocol.
      */
@@ -75,6 +101,9 @@ void graf_read_primitives(vcontext_t *vcx, void **hline, void **point, void **vl
 
 void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int colour_op, void *context)
 {
+    dprintf("Graf_Rectangle: xmin=%d ymin=%d xmax=%d ymax=%d colour_op=%d context=%p\n",
+            xmin, ymin, xmax, ymax, colour_op, context);
+
     /* Fill a rectangle with specified boundaries.
      * 'colour_op' defines which colour (1, 2, or Invert) to use.
      * 'context' is the graphics context (clipping, primitives).
@@ -84,6 +113,9 @@ void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int
 
 void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, void *context)
 {
+    dprintf("Graf_Triangle: (%d,%d) (%d,%d) (%d,%d) colour_op=%d context=%p\n",
+            x0, y0, x1, y1, x2, y2, colour_op, context);
+
     /* Render a filled triangle using the specified vertices.
      * This is a primitive that might be hardware accelerated.
      */
@@ -91,6 +123,9 @@ void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int 
 
 void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, void *context)
 {
+    dprintf("Graf_Parallelogram: (%d,%d) (%d,%d) (%d,%d) colour_op=%d context=%p\n",
+            x0, y0, x1, y1, x2, y2, colour_op, context);
+
     /* Render a filled parallelogram defined by three vertices.
      * The fourth vertex is implicit: (x0 + (x2 - x1), y0 + (y2 - y1)).
      */
@@ -98,6 +133,9 @@ void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2,
 
 void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int src_y1, int dst_x0, int dst_y0, int dst_x1, int dst_y1, int colour_op, void *context)
 {
+    dprintf("Graf_BlockCopy: src(%d,%d)-(%d,%d) dst(%d,%d)-(%d,%d) colour_op=%d context=%p\n",
+            src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, colour_op, context);
+
     /* Copy a rectangular region from source to destination.
      * This might involve handling overlapping regions if source and destination
      * are in the same buffer.
@@ -106,66 +144,98 @@ void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int sr
 
 void graf_circle_outline(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, void *context)
 {
+    dprintf("Graf_CircleOutline: centre(%d,%d) edge(%d,%d) colour_op=%d context=%p\n",
+            xc, yc, xe, ye, colour_op, context);
+
     /* Render the outline of a circle centered at (xc, yc) with edge at (xe, ye).
      */
 }
 
 void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, void *context)
 {
+    dprintf("Graf_CircleFill: centre(%d,%d) edge(%d,%d) colour_op=%d context=%p\n",
+            xc, yc, xe, ye, colour_op, context);
+
     /* Render a filled circle centered at (xc, yc) with edge at (xe, ye).
      */
 }
 
 void graf_circle_arc(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
 {
+    dprintf("Graf_CircleArc: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
+            xc, yc, xs, ys, xe, ye, colour_op, context);
+
     /* Render a circle arc anti-clockwise from (xs, ys) to (xe, ye).
      */
 }
 
 void graf_circle_segment(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
 {
+    dprintf("Graf_CircleSegment: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
+            xc, yc, xs, ys, xe, ye, colour_op, context);
+
     /* Render a filled circle segment.
      */
 }
 
 void graf_circle_sector(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
 {
+    dprintf("Graf_CircleSector: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
+            xc, yc, xs, ys, xe, ye, colour_op, context);
+
     /* Render a filled circle sector (pie slice).
      */
 }
 
 void graf_ellipse_outline(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, void *context)
 {
+    dprintf("Graf_EllipseOutline: centre(%d,%d) xw=%d xl=%d yl=%d colour_op=%d context=%p\n",
+            xc, yc, xw, xl, yl, colour_op, context);
+
     /* Render the outline of an ellipse.
      */
 }
 
 void graf_ellipse_fill(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, void *context)
 {
+    dprintf("Graf_EllipseFill: centre(%d,%d) xw=%d xl=%d yl=%d colour_op=%d context=%p\n",
+            xc, yc, xw, xl, yl, colour_op, context);
+
     /* Render a filled ellipse.
      */
 }
 
 void graf_fill_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
 {
+    dprintf("Graf_FillRight: (%d,%d) delim_colour=%d delim_cond=%d colour_op=%d context=%p\n",
+            x, y, delim_colour, delim_cond, colour_op, context);
+
     /* Fill right from (x, y) until delim_colour is hit (or not hit if delim_cond set).
      */
 }
 
 void graf_fill_left_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
 {
+    dprintf("Graf_FillLeftAndRight: (%d,%d) delim_colour=%d delim_cond=%d colour_op=%d context=%p\n",
+            x, y, delim_colour, delim_cond, colour_op, context);
+
     /* Fill left and right from (x, y) until delimiting conditions.
      */
 }
 
 void graf_fill_flood(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
 {
+    dprintf("Graf_FillFlood: (%d,%d) delim_colour=%d delim_cond=%d colour_op=%d context=%p\n",
+            x, y, delim_colour, delim_cond, colour_op, context);
+
     /* Flood fill starting from (x, y).
      */
 }
 
 void graf_poly_hline(vcontext_t *vcx, void *buffer, int colour_op, void *context)
 {
+    dprintf("Graf_PolyHLine: buffer=%p colour_op=%d context=%p\n", buffer, colour_op, context);
+
     /* Render multiple horizontal lines from the provided buffer.
      * Buffer format: [count, [x_left, y, x_right], ...]
      */
