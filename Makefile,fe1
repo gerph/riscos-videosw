@@ -54,7 +54,7 @@ include CModule
 $(OZDIR).module: h.modhead h.text h.graf
 $(OZDIR).context: h.context
 $(OZDIR).text: h.text h.context
-$(OZDIR).graf: h.graf h.context
+$(OZDIR).graf: h.graf h.context h.stub
 $(OZDIR).stub: h.stub h.context
 
 # Export rules

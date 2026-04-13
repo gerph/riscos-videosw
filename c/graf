@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "graf.h"
+#include "stub.h"
 
 #define DEBUG
 
@@ -101,14 +102,49 @@ void graf_read_primitives(vcontext_t *vcx, void **hline, void **point, void **vl
 
 void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int colour_op, graphicscontext_t *context)
 {
+    int32_t clip_x0, clip_y0, clip_x1, clip_y1;
+    int32_t bx0, by0, bx1, by1;
+    int y;
+
     dprintf("Graf_Rectangle: xmin=%d ymin=%d xmax=%d ymax=%d colour_op=%d context=%p\n",
             xmin, ymin, xmax, ymax, colour_op, context);
 
-    /* Fill a rectangle with specified boundaries.
-     * 'colour_op' defines which colour (1, 2, or Invert) to use.
-     * 'context' is the graphics context (clipping, primitives).
-     * The coordinates are inclusive (xmin to xmax).
-     */
+    if (context == NULL)
+        return;
+
+    clip_x0 = context->clip_x0;
+    clip_y0 = context->clip_y0;
+    clip_x1 = context->clip_x1;
+    clip_y1 = context->clip_y1;
+
+    dprintf("  clip rect: (%d,%d)-(%d,%d)\n", clip_x0, clip_y0, clip_x1, clip_y1);
+
+    /* Bound the rectangle to the clip rectangle */
+    bx0 = xmin;
+    if (bx0 < clip_x0)
+        bx0 = clip_x0;
+    by0 = ymin;
+    if (by0 < clip_y0)
+        by0 = clip_y0;
+    bx1 = xmax;
+    if (bx1 > clip_x1)
+        bx1 = clip_x1;
+    by1 = ymax;
+    if (by1 > clip_y1)
+        by1 = clip_y1;
+
+    dprintf("  bounded: (%d,%d)-(%d,%d)\n", bx0, by0, bx1, by1);
+
+    /* Reject if nothing visible */
+    if (bx0 >= bx1 || by0 >= by1)
+    {
+        dprintf("  nothing visible after clipping\n");
+        return;
+    }
+
+    /* Fill each scan line with an unbounded hline */
+    for (y = by0; y < by1; y++)
+        context_hline(bx0, y, bx1, colour_op, context);
 }
 
 void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, graphicscontext_t *context)

@@ -10,26 +10,29 @@
 
 #include "context.h"
 
+
 /*************************************************** Gerph *********
  Function:     context_hline_bounded
  Description:  Draw a horizontal line bounded to the clipping rectangle
- Parameters:   x1      = start x coordinate
-               y       = y coordinate
-               x2      = end x coordinate
-               context = pointer to graphics context containing clip
+ Parameters:   x1         = start x coordinate
+               y          = y coordinate
+               x2         = end x coordinate
+               colour_op  = colour operation
+               context    = pointer to graphics context containing clip
  Returns:      none
  ******************************************************************/
-void context_hline_bounded(int x1, int y, int x2, graphicscontext_t *context);
+void context_hline_bounded(int x1, int y, int x2, uint32_t colour_op, graphicscontext_t *gcx);
 
 /*************************************************** Gerph *********
  Function:     context_hline
  Description:  Draw a horizontal line without clipping
- Parameters:   x1      = start x coordinate
-               y       = y coordinate
-               x2      = end x coordinate
-               context = pointer to graphics context (unused)
+ Parameters:   x1         = start x coordinate
+               y          = y coordinate
+               x2         = end x coordinate
+               colour_op  = colour operation
+               context    = pointer to graphics context (unused)
  Returns:      none
  ******************************************************************/
-void context_hline(int x1, int y, int x2, graphicscontext_t *context);
+void context_hline(int x1, int y, int x2, uint32_t colour_op, graphicscontext_t *gcx);
 
 #endif
