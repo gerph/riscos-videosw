@@ -99,7 +99,7 @@ void graf_read_primitives(vcontext_t *vcx, void **hline, void **point, void **vl
      */
 }
 
-void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int colour_op, void *context)
+void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_Rectangle: xmin=%d ymin=%d xmax=%d ymax=%d colour_op=%d context=%p\n",
             xmin, ymin, xmax, ymax, colour_op, context);
@@ -111,7 +111,7 @@ void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int
      */
 }
 
-void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, void *context)
+void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_Triangle: (%d,%d) (%d,%d) (%d,%d) colour_op=%d context=%p\n",
             x0, y0, x1, y1, x2, y2, colour_op, context);
@@ -121,7 +121,7 @@ void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int 
      */
 }
 
-void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, void *context)
+void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_Parallelogram: (%d,%d) (%d,%d) (%d,%d) colour_op=%d context=%p\n",
             x0, y0, x1, y1, x2, y2, colour_op, context);
@@ -131,7 +131,7 @@ void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2,
      */
 }
 
-void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int src_y1, int dst_x0, int dst_y0, int dst_x1, int dst_y1, int colour_op, void *context)
+void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int src_y1, int dst_x0, int dst_y0, int dst_x1, int dst_y1, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_BlockCopy: src(%d,%d)-(%d,%d) dst(%d,%d)-(%d,%d) colour_op=%d context=%p\n",
             src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, colour_op, context);
@@ -142,7 +142,7 @@ void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int sr
      */
 }
 
-void graf_circle_outline(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, void *context)
+void graf_circle_outline(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_CircleOutline: centre(%d,%d) edge(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xe, ye, colour_op, context);
@@ -151,7 +151,7 @@ void graf_circle_outline(vcontext_t *vcx, int xc, int yc, int xe, int ye, int co
      */
 }
 
-void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, void *context)
+void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_CircleFill: centre(%d,%d) edge(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xe, ye, colour_op, context);
@@ -160,7 +160,7 @@ void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colou
      */
 }
 
-void graf_circle_arc(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
+void graf_circle_arc(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_CircleArc: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xs, ys, xe, ye, colour_op, context);
@@ -169,7 +169,7 @@ void graf_circle_arc(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, in
      */
 }
 
-void graf_circle_segment(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
+void graf_circle_segment(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_CircleSegment: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xs, ys, xe, ye, colour_op, context);
@@ -178,7 +178,7 @@ void graf_circle_segment(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe
      */
 }
 
-void graf_circle_sector(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, void *context)
+void graf_circle_sector(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_CircleSector: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xs, ys, xe, ye, colour_op, context);
@@ -187,7 +187,7 @@ void graf_circle_sector(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe,
      */
 }
 
-void graf_ellipse_outline(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, void *context)
+void graf_ellipse_outline(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_EllipseOutline: centre(%d,%d) xw=%d xl=%d yl=%d colour_op=%d context=%p\n",
             xc, yc, xw, xl, yl, colour_op, context);
@@ -196,7 +196,7 @@ void graf_ellipse_outline(vcontext_t *vcx, int xc, int yc, int xw, int xl, int y
      */
 }
 
-void graf_ellipse_fill(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, void *context)
+void graf_ellipse_fill(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_EllipseFill: centre(%d,%d) xw=%d xl=%d yl=%d colour_op=%d context=%p\n",
             xc, yc, xw, xl, yl, colour_op, context);
@@ -205,7 +205,7 @@ void graf_ellipse_fill(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, 
      */
 }
 
-void graf_fill_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
+void graf_fill_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_FillRight: (%d,%d) delim_colour=%d delim_cond=%d colour_op=%d context=%p\n",
             x, y, delim_colour, delim_cond, colour_op, context);
@@ -214,7 +214,7 @@ void graf_fill_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_
      */
 }
 
-void graf_fill_left_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
+void graf_fill_left_right(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_FillLeftAndRight: (%d,%d) delim_colour=%d delim_cond=%d colour_op=%d context=%p\n",
             x, y, delim_colour, delim_cond, colour_op, context);
@@ -223,7 +223,7 @@ void graf_fill_left_right(vcontext_t *vcx, int x, int y, int delim_colour, int d
      */
 }
 
-void graf_fill_flood(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, void *context)
+void graf_fill_flood(vcontext_t *vcx, int x, int y, int delim_colour, int delim_cond, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_FillFlood: (%d,%d) delim_colour=%d delim_cond=%d colour_op=%d context=%p\n",
             x, y, delim_colour, delim_cond, colour_op, context);
@@ -232,7 +232,7 @@ void graf_fill_flood(vcontext_t *vcx, int x, int y, int delim_colour, int delim_
      */
 }
 
-void graf_poly_hline(vcontext_t *vcx, void *buffer, int colour_op, void *context)
+void graf_poly_hline(vcontext_t *vcx, void *buffer, int colour_op, graphicscontext_t *context)
 {
     dprintf("Graf_PolyHLine: buffer=%p colour_op=%d context=%p\n", buffer, colour_op, context);
 

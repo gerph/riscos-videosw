@@ -1,0 +1,83 @@
+/*******************************************************************
+ * File:        stub
+ * Purpose:     Stub functions for VideoV graphics primitives
+ * Author:      Gerph
+ * Date:        11 Apr 2026
+ ******************************************************************/
+
+#include <stdio.h>
+
+#include "context.h"
+#include "stub.h"
+
+#define DEBUG
+
+#ifdef DEBUG
+#define dprintf if (1) printf
+#else
+#define dprintf if (0) printf
+#endif
+
+/*************************************************** Gerph *********
+ Function:     context_hline_bounded
+ Description:  Draw a horizontal line bounded to the clipping rectangle
+ Parameters:   x1      = start x coordinate
+               y       = y coordinate
+               x2      = end x coordinate
+               context = pointer to graphics context containing clip
+ Returns:      none
+ ******************************************************************/
+void context_hline_bounded(int x1, int y, int x2, graphicscontext_t *gcx)
+{
+    int32_t rx0, ry0, rx1, ry1;
+    int32_t nx1, nx2;
+
+    dprintf("context_hline_bounded: x1=%d y=%d x2=%d context=%p\n",
+            x1, y, x2, gcx);
+
+    if (gcx == NULL)
+        return;
+
+    rx0 = gcx->clip_x0;
+    ry0 = gcx->clip_y0;
+    rx1 = gcx->clip_x1;
+    ry1 = gcx->clip_y1;
+
+    dprintf("  clip rect: (%d,%d)-(%d,%d)\n", rx0, ry0, rx1, ry1);
+
+    if (y < ry0 || y >= ry1)
+    {
+        dprintf("  line rejected: y=%d outside clip range\n", y);
+        return;
+    }
+
+    nx1 = x1;
+    if (nx1 < rx0)
+        nx1 = rx0;
+    nx2 = x2;
+    if (nx2 > rx1)
+        nx2 = rx1;
+
+    if (nx1 >= nx2)
+    {
+        dprintf("  line rejected: after bounding x1=%d >= x2=%d\n", nx1, nx2);
+        return;
+    }
+
+    dprintf("  bounded: x1=%d x2=%d\n", nx1, nx2);
+}
+
+/*************************************************** Gerph *********
+ Function:     context_hline
+ Description:  Draw a horizontal line without clipping
+ Parameters:   x1      = start x coordinate
+               y       = y coordinate
+               x2      = end x coordinate
+               context = pointer to graphics context (unused)
+ Returns:      none
+ ******************************************************************/
+void context_hline(int x1, int y, int x2, graphicscontext_t *gcx)
+{
+    dprintf("context_hline: x1=%d y=%d x2=%d context=%p\n",
+            x1, y, x2, gcx);
+}

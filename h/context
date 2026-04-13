@@ -8,6 +8,8 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
+#include <stdint.h>
+
 /* Our video context */
 typedef struct vcontext_s
 {
@@ -27,6 +29,17 @@ typedef struct vcontext_s
     unsigned int pattern1[8], pattern2[8];
 } vcontext_t;
 
+
+typedef struct graphicscontext_s {
+    int32_t clip_x0;    /* Graphics clipping window x-min (inclusive) */
+    int32_t clip_y0;    /* Graphics clipping window y-min (inclusive) */
+    int32_t clip_x1;    /* Graphics clipping window x-max (exclusive) */
+    int32_t clip_y1;    /* Graphics clipping window y-max (exclusive) */
+    uint32_t func_hline_bounded;    /* Function to call to render a bounded horizontal line */
+    uint32_t func_hline_unbounded;  /* Function to call to render a unbounded horizontal line */
+    uint32_t func_point_bounded;    /* Function to call to render a bounded point */
+    uint32_t func_point_unbounded;  /* Function to call to render a unbounded point */
+} graphicscontext_t;
 
 /*************************************************** Gerph *********
  Function:      vcxd_final

@@ -1,0 +1,35 @@
+/*******************************************************************
+ * File:        stub
+ * Purpose:     Stub functions for VideoV graphics primitives
+ * Author:      Gerph
+ * Date:        11 Apr 2026
+ ******************************************************************/
+
+#ifndef STUB_H
+#define STUB_H
+
+#include "context.h"
+
+/*************************************************** Gerph *********
+ Function:     context_hline_bounded
+ Description:  Draw a horizontal line bounded to the clipping rectangle
+ Parameters:   x1      = start x coordinate
+               y       = y coordinate
+               x2      = end x coordinate
+               context = pointer to graphics context containing clip
+ Returns:      none
+ ******************************************************************/
+void context_hline_bounded(int x1, int y, int x2, graphicscontext_t *context);
+
+/*************************************************** Gerph *********
+ Function:     context_hline
+ Description:  Draw a horizontal line without clipping
+ Parameters:   x1      = start x coordinate
+               y       = y coordinate
+               x2      = end x coordinate
+               context = pointer to graphics context (unused)
+ Returns:      none
+ ******************************************************************/
+void context_hline(int x1, int y, int x2, graphicscontext_t *context);
+
+#endif
