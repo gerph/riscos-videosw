@@ -478,31 +478,471 @@ void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colou
     }
 }
 
+/* Helper: cross product of vectors OA and OB */
+static int cross_product(int ax, int ay, int bx, int by)
+{
+    return ax * by - ay * bx;
+}
+
+/* Check if point P on the circle is on the anti-clockwise arc
+ * from S to E (all relative to centre at origin).
+ */
+static int point_on_arc(int px, int py, int sx, int sy, int ex, int ey)
+{
+    int cross_se, cross_sp, cross_pe;
+
+    cross_se = cross_product(sx, sy, ex, ey);
+
+    if (cross_se >= 0)
+    {
+        /* Arc is <= 180 degrees: P must be anti-clockwise of S
+         * and E must be anti-clockwise of P */
+        cross_sp = cross_product(sx, sy, px, py);
+        cross_pe = cross_product(px, py, ex, ey);
+        return (cross_sp >= 0) && (cross_pe >= 0);
+    }
+    else
+    {
+        /* Arc is > 180 degrees: P must NOT be in the gap */
+        cross_sp = cross_product(sx, sy, px, py);
+        cross_pe = cross_product(px, py, ex, ey);
+        return (cross_sp >= 0) || (cross_pe >= 0);
+    }
+}
+
 void graf_circle_arc(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
+    int dx, dy, d;
+    int r_sq, r;
+    int bit, res2, rem2;
+    int sx, sy, ex, ey;
+
     dprintf("Graf_CircleArc: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xs, ys, xe, ye, colour_op, context);
 
-    /* Render a circle arc anti-clockwise from (xs, ys) to (xe, ye).
-     */
+    sx = xs - xc;
+    sy = ys - yc;
+    ex = xe - xc;
+    ey = ye - yc;
+    r_sq = sx * sx + sy * sy;
+
+    if (r_sq <= 0)
+        return;
+
+    /* Integer square root */
+    bit = 1 << 14;
+    while (bit > r_sq)
+        bit >>= 2;
+    res2 = 0;
+    rem2 = r_sq;
+    while (bit != 0)
+    {
+        if (rem2 >= res2 + bit)
+        {
+            rem2 -= res2 + bit;
+            res2 = (res2 >> 1) + bit;
+        }
+        else
+        {
+            res2 >>= 1;
+        }
+        bit >>= 2;
+    }
+    r = res2;
+
+    dprintf("  radius=%d\n", r);
+
+    /* Midpoint circle algorithm */
+    dx = 0;
+    dy = r;
+    d = 3 - 2 * r;
+
+    /* Plot the 8 symmetric points, filtering by arc range */
+    {
+        int px, py;
+        px = xc + dx; py = yc + dy;
+        if (point_on_arc(dx, dy, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+        px = xc - dx; py = yc + dy;
+        if (point_on_arc(-dx, dy, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+        px = xc + dx; py = yc - dy;
+        if (point_on_arc(dx, -dy, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+        px = xc - dx; py = yc - dy;
+        if (point_on_arc(-dx, -dy, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+        px = xc + dy; py = yc + dx;
+        if (point_on_arc(dy, dx, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+        px = xc - dy; py = yc + dx;
+        if (point_on_arc(-dy, dx, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+        px = xc + dy; py = yc - dx;
+        if (point_on_arc(dy, -dx, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+        px = xc - dy; py = yc - dx;
+        if (point_on_arc(-dy, -dx, sx, sy, ex, ey))
+            context_point_bounded(px, py, colour_op, context);
+    }
+
+    while (dy > dx)
+    {
+        if (d <= 0)
+        {
+            d += 4 * dx + 6;
+        }
+        else
+        {
+            d += 4 * (dx - dy) + 10;
+            dy--;
+        }
+        dx++;
+
+        {
+            int px, py;
+            px = xc + dx; py = yc + dy;
+            if (point_on_arc(dx, dy, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+            px = xc - dx; py = yc + dy;
+            if (point_on_arc(-dx, dy, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+            px = xc + dx; py = yc - dy;
+            if (point_on_arc(dx, -dy, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+            px = xc - dx; py = yc - dy;
+            if (point_on_arc(-dx, -dy, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+            px = xc + dy; py = yc + dx;
+            if (point_on_arc(dy, dx, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+            px = xc - dy; py = yc + dx;
+            if (point_on_arc(-dy, dx, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+            px = xc + dy; py = yc - dx;
+            if (point_on_arc(dy, -dx, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+            px = xc - dy; py = yc - dx;
+            if (point_on_arc(-dy, -dx, sx, sy, ex, ey))
+                context_point_bounded(px, py, colour_op, context);
+        }
+    }
 }
 
 void graf_circle_segment(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
+    int r_sq, r;
+    int bit, res2, rem2;
+    int sx, sy, ex, ey;
+    int clip_y0, clip_y1;
+
     dprintf("Graf_CircleSegment: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xs, ys, xe, ye, colour_op, context);
 
-    /* Render a filled circle segment.
+    if (context == NULL)
+        return;
+
+    clip_y0 = context->clip_y0;
+    clip_y1 = context->clip_y1;
+
+    sx = xs - xc;
+    sy = ys - yc;
+    ex = xe - xc;
+    ey = ye - yc;
+    r_sq = sx * sx + sy * sy;
+
+    if (r_sq <= 0)
+        return;
+
+    /* Integer square root */
+    bit = 1 << 14;
+    while (bit > r_sq)
+        bit >>= 2;
+    res2 = 0;
+    rem2 = r_sq;
+    while (bit != 0)
+    {
+        if (rem2 >= res2 + bit)
+        {
+            rem2 -= res2 + bit;
+            res2 = (res2 >> 1) + bit;
+        }
+        else
+        {
+            res2 >>= 1;
+        }
+        bit >>= 2;
+    }
+    r = res2;
+
+    dprintf("  radius=%d\n", r);
+
+    /* A filled segment is the region bounded by the arc and the chord.
+     * Fill each scan line that intersects the segment.
+     * For each y from yc-r to yc+r, find x values on the arc that
+     * fall within the arc range, then fill between them.
+     *
+     * Simpler approach: scan each y, find the leftmost and rightmost
+     * arc point on that y that's in the arc range, and fill between them.
+     * For scan lines that don't intersect the arc at all (or only have
+     * one point), handle the chord endpoints.
      */
+
+    /* For simplicity, use the midpoint algorithm to collect arc points
+     * per scan line, then fill between min/max x on each line. */
+    {
+        int y;
+        int y_start = yc - r;
+        int y_end = yc + r;
+
+        if (y_start < clip_y0)
+            y_start = clip_y0;
+        if (y_end >= clip_y1)
+            y_end = clip_y1 - 1;
+
+        /* For each y in range, find arc x values.
+         * Use the circle equation: x = xc +/- sqrt(r^2 - (y-yc)^2) */
+        for (y = y_start; y <= y_end; y++)
+        {
+            int y_off = y - yc;
+            int rem = r_sq - y_off * y_off;
+            int x_off;
+            int x_left = 32767, x_right = -32768;
+            int found = 0;
+
+            if (rem < 0)
+                continue;
+
+            /* Integer sqrt of rem */
+            bit = 1 << 14;
+            while (bit > rem)
+                bit >>= 2;
+            res2 = 0;
+            rem2 = rem;
+            while (bit != 0)
+            {
+                if (rem2 >= res2 + bit)
+                {
+                    rem2 -= res2 + bit;
+                    res2 = (res2 >> 1) + bit;
+                }
+                else
+                {
+                    res2 >>= 1;
+                }
+                bit >>= 2;
+            }
+            x_off = res2;
+
+            /* Check both x values at this y */
+            {
+                int px1 = xc - x_off;
+                int px2 = xc + x_off;
+                int in1 = point_on_arc(-x_off, y_off, sx, sy, ex, ey);
+                int in2 = point_on_arc(x_off, y_off, sx, sy, ex, ey);
+
+                if (in1)
+                {
+                    if (px1 < x_left) x_left = px1;
+                    if (px1 > x_right) x_right = px1;
+                    found = 1;
+                }
+                if (in2)
+                {
+                    if (px2 < x_left) x_left = px2;
+                    if (px2 > x_right) x_right = px2;
+                    found = 1;
+                }
+
+                /* If no arc point on this scan line but the chord passes through,
+                 * we need to check if this y is between the chord endpoints.
+                 * For now, if both endpoints are on opposite sides of this y,
+                 * fill between the chord intersection points. */
+                if (!found)
+                {
+                    /* Check if chord passes through this y */
+                    int y_len = ey - sy;
+                    if (y_len != 0)
+                    {
+                        int y_rel = y_off - sy;
+                        if ((sy < y_off && ey >= y_off) || (ey < y_off && sy >= y_off))
+                        {
+                            /* Chord crosses this y. Compute x at this y.
+                             * x = sx + (ex - sx) * (y_off - sy) / (ey - sy)
+                             * Using integer division. */
+                            int chord_x = sx + (ex - sx) * y_rel / y_len;
+                            x_left = xc + chord_x;
+                            x_right = x_left;
+                            found = 1;
+                        }
+                    }
+                }
+
+                if (found)
+                    context_hline_bounded(x_left, y, x_right, colour_op, context);
+            }
+        }
+    }
 }
 
 void graf_circle_sector(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
+    int r_sq, r;
+    int bit, res2, rem2;
+    int sx, sy, ex, ey;
+    int y, y_start, y_end;
+    int clip_y0, clip_y1;
+
     dprintf("Graf_CircleSector: centre(%d,%d) start(%d,%d) end(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xs, ys, xe, ye, colour_op, context);
 
-    /* Render a filled circle sector (pie slice).
+    if (context == NULL)
+        return;
+
+    clip_y0 = context->clip_y0;
+    clip_y1 = context->clip_y1;
+
+    sx = xs - xc;
+    sy = ys - yc;
+    ex = xe - xc;
+    ey = ye - yc;
+    r_sq = sx * sx + sy * sy;
+
+    if (r_sq <= 0)
+        return;
+
+    /* Integer square root */
+    bit = 1 << 14;
+    while (bit > r_sq)
+        bit >>= 2;
+    res2 = 0;
+    rem2 = r_sq;
+    while (bit != 0)
+    {
+        if (rem2 >= res2 + bit)
+        {
+            rem2 -= res2 + bit;
+            res2 = (res2 >> 1) + bit;
+        }
+        else
+        {
+            res2 >>= 1;
+        }
+        bit >>= 2;
+    }
+    r = res2;
+
+    dprintf("  radius=%d\n", r);
+
+    /* A filled sector (pie slice) is bounded by the arc and two radii
+     * from centre to start and centre to end.
+     * For each y in range, find the x range: from one radius to the arc,
+     * or from centre to arc, etc.
+     *
+     * Collect boundary x values at each y: arc points + radius points.
+     * Fill between min and max.
      */
+    y_start = yc - r;
+    y_end = yc + r;
+
+    if (y_start < clip_y0)
+        y_start = clip_y0;
+    if (y_end >= clip_y1)
+        y_end = clip_y1 - 1;
+
+    for (y = y_start; y <= y_end; y++)
+    {
+        int y_off = y - yc;
+        int x_min = 32767, x_max = -32768;
+        int found = 0;
+
+        /* Check arc points at this y */
+        {
+            int rem = r_sq - y_off * y_off;
+            if (rem >= 0)
+            {
+                int x_off;
+                /* Integer sqrt */
+                bit = 1 << 14;
+                while (bit > rem)
+                    bit >>= 2;
+                res2 = 0;
+                rem2 = rem;
+                while (bit != 0)
+                {
+                    if (rem2 >= res2 + bit)
+                    {
+                        rem2 -= res2 + bit;
+                        res2 = (res2 >> 1) + bit;
+                    }
+                    else
+                    {
+                        res2 >>= 1;
+                    }
+                    bit >>= 2;
+                }
+                x_off = res2;
+
+                {
+                    int px1 = xc - x_off;
+                    int px2 = xc + x_off;
+                    if (point_on_arc(-x_off, y_off, sx, sy, ex, ey))
+                    {
+                        if (px1 < x_min) x_min = px1;
+                        if (px1 > x_max) x_max = px1;
+                        found = 1;
+                    }
+                    if (point_on_arc(x_off, y_off, sx, sy, ex, ey))
+                    {
+                        if (px2 < x_min) x_min = px2;
+                        if (px2 > x_max) x_max = px2;
+                        found = 1;
+                    }
+                }
+            }
+        }
+
+        /* Check radius from centre to start */
+        if (sy != 0)
+        {
+            if ((sy < 0 && y_off >= sy && y_off <= 0) ||
+                (sy > 0 && y_off >= 0 && y_off <= sy) ||
+                y_off == 0)
+            {
+                int rx = sx * y_off / sy;
+                rx = xc + rx;
+                if (rx < x_min) x_min = rx;
+                if (rx > x_max) x_max = rx;
+                found = 1;
+            }
+        }
+
+        /* Check radius from centre to end */
+        if (ey != 0)
+        {
+            if ((ey < 0 && y_off >= ey && y_off <= 0) ||
+                (ey > 0 && y_off >= 0 && y_off <= ey) ||
+                y_off == 0)
+            {
+                int rx = ex * y_off / ey;
+                rx = xc + rx;
+                if (rx < x_min) x_min = rx;
+                if (rx > x_max) x_max = rx;
+                found = 1;
+            }
+        }
+
+        /* Always include centre point on its own scan line */
+        if (y == yc)
+        {
+            if (xc < x_min) x_min = xc;
+            if (xc > x_max) x_max = xc;
+            found = 1;
+        }
+
+        if (found)
+            context_hline_bounded(x_min, y, x_max, colour_op, context);
+    }
 }
 
 void graf_ellipse_outline(vcontext_t *vcx, int xc, int yc, int xw, int xl, int yl, int colour_op, graphicscontext_t *context)
