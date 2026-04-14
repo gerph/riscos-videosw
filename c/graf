@@ -313,12 +313,20 @@ void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int 
 
 void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, graphicscontext_t *context)
 {
+    int x3, y3;
+
     dprintf("Graf_Parallelogram: (%d,%d) (%d,%d) (%d,%d) colour_op=%d context=%p\n",
             x0, y0, x1, y1, x2, y2, colour_op, context);
 
-    /* Render a filled parallelogram defined by three vertices.
-     * The fourth vertex is implicit: (x0 + (x2 - x1), y0 + (y2 - y1)).
-     */
+    /* Fourth vertex is implicit: (x0 + (x2 - x1), y0 + (y2 - y1)) */
+    x3 = x0 + (x2 - x1);
+    y3 = y0 + (y2 - y1);
+
+    dprintf("  implicit fourth vertex: (%d,%d)\n", x3, y3);
+
+    /* Fill as two triangles: (x0,y0)-(x1,y1)-(x2,y2) and (x0,y0)-(x2,y2)-(x3,y3) */
+    graf_triangle(vcx, x0, y0, x1, y1, x2, y2, colour_op, context);
+    graf_triangle(vcx, x0, y0, x2, y2, x3, y3, colour_op, context);
 }
 
 void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int src_y1, int dst_x0, int dst_y0, int dst_x1, int dst_y1, int colour_op, graphicscontext_t *context)
@@ -334,11 +342,85 @@ void graf_block_copy(vcontext_t *vcx, int src_x0, int src_y0, int src_x1, int sr
 
 void graf_circle_outline(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
+    int dx, dy, d;
+    int r;
+
     dprintf("Graf_CircleOutline: centre(%d,%d) edge(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xe, ye, colour_op, context);
 
-    /* Render the outline of a circle centered at (xc, yc) with edge at (xe, ye).
-     */
+    dx = xe - xc;
+    dy = ye - yc;
+    r = (dx * dx + dy * dy);
+
+    /* Use integer square root approximation for radius */
+    if (r <= 0)
+        return;
+
+    /* Simple approach: use midpoint circle algorithm.
+     * Start at (0, r) and step through octants.
+     * We need integer sqrt of r_sq to get r. */
+    {
+        int bit, res2, rem2;
+        bit = 1 << 14;
+        while (bit > r)
+            bit >>= 2;
+        res2 = 0;
+        rem2 = r;
+        while (bit != 0)
+        {
+            if (rem2 >= res2 + bit)
+            {
+                rem2 -= res2 + bit;
+                res2 = (res2 >> 1) + bit;
+            }
+            else
+            {
+                res2 >>= 1;
+            }
+            bit >>= 2;
+        }
+        r = res2;
+    }
+
+    dprintf("  radius=%d\n", r);
+
+    /* Midpoint circle algorithm (Bresenham-style) */
+    dx = 0;
+    dy = r;
+    d = 3 - 2 * r;
+
+    /* Plot 8-way symmetric points */
+    context_point_bounded(xc + dx, yc + dy, colour_op, context);
+    context_point_bounded(xc - dx, yc + dy, colour_op, context);
+    context_point_bounded(xc + dx, yc - dy, colour_op, context);
+    context_point_bounded(xc - dx, yc - dy, colour_op, context);
+    context_point_bounded(xc + dy, yc + dx, colour_op, context);
+    context_point_bounded(xc - dy, yc + dx, colour_op, context);
+    context_point_bounded(xc + dy, yc - dx, colour_op, context);
+    context_point_bounded(xc - dy, yc - dx, colour_op, context);
+
+    while (dy > dx)
+    {
+        if (d <= 0)
+        {
+            d += 4 * dx + 6;
+        }
+        else
+        {
+            d += 4 * (dx - dy) + 10;
+            dy--;
+        }
+        dx++;
+
+        context_point_bounded(xc + dx, yc + dy, colour_op, context);
+        context_point_bounded(xc - dx, yc + dy, colour_op, context);
+        context_point_bounded(xc + dx, yc - dy, colour_op, context);
+        context_point_bounded(xc - dx, yc - dy, colour_op, context);
+        context_point_bounded(xc + dy, yc + dx, colour_op, context);
+        context_point_bounded(xc - dy, yc + dx, colour_op, context);
+        context_point_bounded(xc + dy, yc - dx, colour_op, context);
+        context_point_bounded(xc - dy, yc - dx, colour_op, context);
+    }
 }
 
 void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, graphicscontext_t *context)

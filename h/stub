@@ -35,4 +35,26 @@ void context_hline_bounded(int x1, int y, int x2, uint32_t colour_op, graphicsco
  ******************************************************************/
 void context_hline(int x1, int y, int x2, uint32_t colour_op, graphicscontext_t *gcx);
 
+/*************************************************** Gerph *********
+ Function:     context_point_bounded
+ Description:  Plot a point bounded to the clipping rectangle
+ Parameters:   x          = x coordinate
+               y          = y coordinate
+               colour_op  = colour operation
+               context    = pointer to graphics context containing clip
+ Returns:      none
+ ******************************************************************/
+void context_point_bounded(int x, int y, uint32_t colour_op, graphicscontext_t *gcx);
+
+/*************************************************** Gerph *********
+ Function:     context_point
+ Description:  Plot a point without clipping
+ Parameters:   x          = x coordinate
+               y          = y coordinate
+               colour_op  = colour operation
+               context    = pointer to graphics context (unused)
+ Returns:      none
+ ******************************************************************/
+void context_point(int x, int y, uint32_t colour_op, graphicscontext_t *gcx);
+
 #endif
