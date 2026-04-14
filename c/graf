@@ -165,12 +165,150 @@ void graf_rectangle(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, int
 
 void graf_triangle(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, graphicscontext_t *context)
 {
+    int sx0, sy0, sx1, sy1, sx2, sy2;
+    int dx01, dy01, dx02, dy02, dx12, dy12;
+    int y_min, y_max;
+    int y;
+    int x_left, x_right;
+    int clip_x0, clip_x1, clip_y0, clip_y1;
+
     dprintf("Graf_Triangle: (%d,%d) (%d,%d) (%d,%d) colour_op=%d context=%p\n",
             x0, y0, x1, y1, x2, y2, colour_op, context);
 
-    /* Render a filled triangle using the specified vertices.
-     * This is a primitive that might be hardware accelerated.
+    if (context == NULL)
+        return;
+
+    clip_x0 = context->clip_x0;
+    clip_x1 = context->clip_x1;
+    clip_y0 = context->clip_y0;
+    clip_y1 = context->clip_y1;
+
+    dprintf("  clip rect: (%d,%d)-(%d,%d)\n", clip_x0, clip_y0, clip_x1, clip_y1);
+
+    /* Fast reject: check if all vertices are entirely outside the clip rect */
+    y_min = y0;
+    if (y1 < y_min) y_min = y1;
+    if (y2 < y_min) y_min = y2;
+    y_max = y0;
+    if (y1 > y_max) y_max = y1;
+    if (y2 > y_max) y_max = y2;
+
+    if (y_max < clip_y0 || y_min >= clip_y1)
+    {
+        dprintf("  fast reject: triangle entirely above/below clip\n");
+        return;
+    }
+
+    if ((x0 < clip_x0 && x1 < clip_x0 && x2 < clip_x0) ||
+        (x0 > clip_x1 && x1 > clip_x1 && x2 > clip_x1))
+    {
+        dprintf("  fast reject: triangle entirely left/right of clip\n");
+        return;
+    }
+
+    /* Sort vertices by Y coordinate (bubble sort) */
+    sx0 = x0; sy0 = y0;
+    sx1 = x1; sy1 = y1;
+    sx2 = x2; sy2 = y2;
+
+    if (sy1 < sy0)
+    {
+        int tmpx = sx0, tmpy = sy0;
+        sx0 = sx1; sy0 = sy1;
+        sx1 = tmpx; sy1 = tmpy;
+    }
+    if (sy2 < sy0)
+    {
+        int tmpx = sx0, tmpy = sy0;
+        sx0 = sx2; sy0 = sy2;
+        sx2 = tmpx; sy2 = tmpy;
+    }
+    if (sy2 < sy1)
+    {
+        int tmpx = sx1, tmpy = sy1;
+        sx1 = sx2; sy1 = sy2;
+        sx2 = tmpx; sy2 = tmpy;
+    }
+
+    /* Reject if degenerate (zero area) */
+    if (sy0 == sy2)
+    {
+        dprintf("  rejected: degenerate (flat)\n");
+        return;
+    }
+
+    /* Split the triangle into two parts at sy1.
+     * Top part: sy0..sy1, edges (sx0,sy0)->(sx2,sy2) and (sx0,sy0)->(sx1,sy1)
+     * Bottom part: sy1..sy2, edges (sx1,sy1)->(sx2,sy2) and (sx0,sy0)->(sx2,sy2)
+     *
+     * Use fixed-point edge stepping (16.16) to compute x for each scanline.
+     * The major edge is always (sx0,sy0)->(sx2,sy2).
      */
+    dx02 = (sx2 - sx0) << 16;
+    dy02 = sy2 - sy0;
+
+    /* --- Top part (sy0..sy1) --- */
+    dx01 = (sx1 - sx0) << 16;
+    dy01 = sy1 - sy0;
+
+    if (dy01 > 0)
+    {
+        int y_start = sy0;
+        int y_end = sy1;
+        int edge_x = sx0 << 16;
+        int other_x = sx0 << 16;
+        int edge_step = dy02 > 0 ? dx02 / dy02 : 0;
+        int other_step = dx01 / dy01;
+
+        for (y = y_start; y < y_end; y++)
+        {
+            int ex = edge_x >> 16;
+            int ox = other_x >> 16;
+            x_left = ex;
+            if (ox < x_left) x_left = ox;
+            x_right = ox;
+            if (ex > x_right) x_right = ex;
+
+            if (y >= clip_y0 && y < clip_y1)
+                context_hline_bounded(x_left, y, x_right, colour_op, context);
+
+            edge_x += edge_step;
+            other_x += other_step;
+        }
+    }
+
+    /* --- Bottom part (sy1..sy2) --- */
+    dx12 = (sx2 - sx1) << 16;
+    dy12 = sy2 - sy1;
+
+    if (dy12 > 0)
+    {
+        int y_start = sy1;
+        int y_end = sy2;
+        int edge_x = sx0 << 16;
+        int other_x = sx1 << 16;
+        int edge_step = dy02 > 0 ? dx02 / dy02 : 0;
+        int other_step = dx12 / dy12;
+
+        /* Continue edge_x from where the top part left off */
+        edge_x = (sx0 << 16) + (edge_step * (sy1 - sy0));
+
+        for (y = y_start; y < y_end; y++)
+        {
+            int ex = edge_x >> 16;
+            int ox = other_x >> 16;
+            x_left = ex;
+            if (ox < x_left) x_left = ox;
+            x_right = ox;
+            if (ex > x_right) x_right = ex;
+
+            if (y >= clip_y0 && y < clip_y1)
+                context_hline_bounded(x_left, y, x_right, colour_op, context);
+
+            edge_x += edge_step;
+            other_x += other_step;
+        }
+    }
 }
 
 void graf_parallelogram(vcontext_t *vcx, int x0, int y0, int x1, int y1, int x2, int y2, int colour_op, graphicscontext_t *context)

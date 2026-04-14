@@ -34,9 +34,6 @@ void context_hline_bounded(int x1, int y, int x2, uint32_t colour_op, graphicsco
     int32_t rx0, ry0, rx1, ry1;
     int32_t nx1, nx2;
 
-    dprintf("context_hline_bounded: x1=%d y=%d x2=%d context=%p\n",
-            x1, y, x2, gcx);
-
     if (gcx == NULL)
         return;
 
@@ -45,13 +42,8 @@ void context_hline_bounded(int x1, int y, int x2, uint32_t colour_op, graphicsco
     rx1 = gcx->clip_x1;
     ry1 = gcx->clip_y1;
 
-    dprintf("  clip rect: (%d,%d)-(%d,%d)\n", rx0, ry0, rx1, ry1);
-
     if (y < ry0 || y >= ry1)
-    {
-        dprintf("  line rejected: y=%d outside clip range\n", y);
         return;
-    }
 
     nx1 = x1;
     if (nx1 < rx0)
@@ -61,12 +53,7 @@ void context_hline_bounded(int x1, int y, int x2, uint32_t colour_op, graphicsco
         nx2 = rx1;
 
     if (nx1 >= nx2)
-    {
-        dprintf("  line rejected: after bounding x1=%d >= x2=%d\n", nx1, nx2);
         return;
-    }
-
-    dprintf("  bounded: x1=%d x2=%d\n", nx1, nx2);
 }
 
 /*************************************************** Gerph *********
@@ -81,6 +68,5 @@ void context_hline_bounded(int x1, int y, int x2, uint32_t colour_op, graphicsco
  ******************************************************************/
 void context_hline(int x1, int y, int x2, uint32_t colour_op, graphicscontext_t *gcx)
 {
-    dprintf("context_hline: x1=%d y=%d x2=%d context=%p\n",
-            x1, y, x2, gcx);
+    (void) x1; (void) y; (void) x2; (void) colour_op; (void) gcx;
 }
