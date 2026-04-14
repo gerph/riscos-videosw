@@ -20,8 +20,11 @@
 
 void text_change_destination(vcontext_t *vcx, void *base, int linelength, int maxheight, int log2bpp, int modeflags)
 {
-    dprintf("Text_ChangeDestination: base=%p linelength=%d maxheight=%d log2bpp=%d modeflags=%d\n",
-            base, linelength, maxheight, log2bpp, modeflags);
+    dprintf("Text_ChangeDestination: vcx=%p base=%p linelength=%d maxheight=%d log2bpp=%d modeflags=%d\n",
+            vcx, base, linelength, maxheight, log2bpp, modeflags);
+
+    if (vcx == NULL)
+        return;
 
     /* Update context with new destination information */
     vcx->base = base;
@@ -37,7 +40,10 @@ void text_change_destination(vcontext_t *vcx, void *base, int linelength, int ma
 
 void text_define_char(vcontext_t *vcx, int char_code, void *data)
 {
-    dprintf("Text_DefineChar: char_code=%d data=%p\n", char_code, data);
+    dprintf("Text_DefineChar: vcx=%p char_code=%d data=%p\n", vcx, char_code, data);
+
+    if (vcx == NULL)
+        return;
 
     /* Store or update the bitmap for the given character code */
     /* This character data is typically an 8x8 bitmap (8 bytes).
@@ -48,7 +54,10 @@ void text_define_char(vcontext_t *vcx, int char_code, void *data)
 
 void text_set_text_colour(vcontext_t *vcx, int fg, int bg, int log2bpp)
 {
-    dprintf("Text_SetTextColour: fg=%d bg=%d log2bpp=%d\n", fg, bg, log2bpp);
+    dprintf("Text_SetTextColour: vcx=%p fg=%d bg=%d log2bpp=%d\n", vcx, fg, bg, log2bpp);
+
+    if (vcx == NULL)
+        return;
 
     vcx->fg_colour = fg;
     vcx->bg_colour = bg;
@@ -62,7 +71,10 @@ void text_set_text_colour(vcontext_t *vcx, int fg, int bg, int log2bpp)
 
 void text_write_text_char(vcontext_t *vcx, int char_code, void *addr, int x, int y)
 {
-    dprintf("Text_WriteTextChar: char_code=%d addr=%p x=%d y=%d\n", char_code, addr, x, y);
+    dprintf("Text_WriteTextChar: vcx=%p char_code=%d addr=%p x=%d y=%d\n", vcx, char_code, addr, x, y);
+
+    if (vcx == NULL)
+        return;
 
     vcx->charx = x;
     vcx->chary = y;
@@ -76,7 +88,10 @@ void text_write_text_char(vcontext_t *vcx, int char_code, void *addr, int x, int
 
 void text_text_cursor(vcontext_t *vcx, int type, void *addr, int x, int y)
 {
-    dprintf("Text_TextCursor: type=%d addr=%p x=%d y=%d\n", type, addr, x, y);
+    dprintf("Text_TextCursor: vcx=%p type=%d addr=%p x=%d y=%d\n", vcx, type, addr, x, y);
+
+    if (vcx == NULL)
+        return;
 
     vcx->cursorx = x;
     vcx->cursory = y;
@@ -89,8 +104,11 @@ void text_text_cursor(vcontext_t *vcx, int type, void *addr, int x, int y)
 
 void text_clear_box(vcontext_t *vcx, int xmin, int ymin, int xmax, int ymax, void *base, int linelength, int log2bpp, int modeflags)
 {
-    dprintf("Text_ClearBox: xmin=%d ymin=%d xmax=%d ymax=%d base=%p linelength=%d log2bpp=%d modeflags=%d\n",
-            xmin, ymin, xmax, ymax, base, linelength, log2bpp, modeflags);
+    dprintf("Text_ClearBox: vcx=%p xmin=%d ymin=%d xmax=%d ymax=%d base=%p linelength=%d log2bpp=%d modeflags=%d\n",
+            vcx, xmin, ymin, xmax, ymax, base, linelength, log2bpp, modeflags);
+
+    if (vcx == NULL)
+        return;
 
     /* Clear a rectangular region of the screen for text.
      * The region is defined by (xmin, ymin) to (xmax, ymax) in text coordinates.

@@ -90,9 +90,8 @@ _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
  **************************************************************************/
 int videov(_kernel_swi_regs * r, void *pw)
 {
-    int display = r->r[7];
     int reason = r->r[8];
-    vcontext_t *vcx;
+    vcontext_t *vcx = NULL;
 
     /* Handle reason codes in groups:
      * 0x000 - 0x00F: Text
@@ -102,10 +101,6 @@ int videov(_kernel_swi_regs * r, void *pw)
      * 0x400 - 0x4FF: Teletext
      */
     if (reason > 0x1FF)
-        return VECTOR_PASSON;
-
-    vcx = vcxd_find(display);
-    if (vcx == NULL)
         return VECTOR_PASSON;
 
     switch (reason)

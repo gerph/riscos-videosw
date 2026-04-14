@@ -21,7 +21,10 @@
 
 void graf_set_colour1(vcontext_t *vcx, int action, unsigned int *pattern)
 {
-    dprintf("Graf_SetColour1: action=%d pattern=%p\n", action, pattern);
+    dprintf("Graf_SetColour1: vcx=%p action=%d pattern=%p\n", vcx, action, pattern);
+
+    if (vcx == NULL)
+        return;
 
     vcx->action1 = action;
     if (pattern)
@@ -35,7 +38,10 @@ void graf_set_colour1(vcontext_t *vcx, int action, unsigned int *pattern)
 
 void graf_set_colour2(vcontext_t *vcx, int action, unsigned int *pattern)
 {
-    dprintf("Graf_SetColour2: action=%d pattern=%p\n", action, pattern);
+    dprintf("Graf_SetColour2: vcx=%p action=%d pattern=%p\n", vcx, action, pattern);
+
+    if (vcx == NULL)
+        return;
 
     vcx->action2 = action;
     if (pattern)
@@ -48,7 +54,11 @@ void graf_set_colour2(vcontext_t *vcx, int action, unsigned int *pattern)
 
 void graf_change_destination(vcontext_t *vcx, int *block, int is_sprite)
 {
-    dprintf("Graf_ChangeDestination: block=%p is_sprite=%d\n", block, is_sprite);
+    dprintf("Graf_ChangeDestination: vcx=%p block=%p is_sprite=%d\n", vcx, block, is_sprite);
+
+    if (vcx == NULL)
+        return;
+
     if (block)
     {
         dprintf("  modeflags=%d width=%d height=%d log2bpp=%d xeig=%d yeig=%d\n",
@@ -82,7 +92,10 @@ void graf_change_destination(vcontext_t *vcx, int *block, int is_sprite)
 
 void graf_change_base(vcontext_t *vcx, void *base)
 {
-    dprintf("Graf_ChangeBase: base=%p\n", base);
+    dprintf("Graf_ChangeBase: vcx=%p base=%p\n", vcx, base);
+
+    if (vcx == NULL)
+        return;
 
     vcx->base = base;
 
@@ -93,7 +106,10 @@ void graf_change_base(vcontext_t *vcx, void *base)
 
 void graf_read_primitives(vcontext_t *vcx, void **hline, void **point, void **vline)
 {
-    dprintf("Graf_ReadPrimitives: hline=%p point=%p vline=%p\n", hline, point, vline);
+    dprintf("Graf_ReadPrimitives: vcx=%p hline=%p point=%p vline=%p\n", vcx, hline, point, vline);
+
+    if (vcx == NULL)
+        return;
 
     /* Provide optimized handler functions for basic primitives.
      * The handlers should follow the r12-function pointer protocol.
@@ -189,11 +205,57 @@ void graf_circle_outline(vcontext_t *vcx, int xc, int yc, int xe, int ye, int co
 
 void graf_circle_fill(vcontext_t *vcx, int xc, int yc, int xe, int ye, int colour_op, graphicscontext_t *context)
 {
+    int dx, dy, r_sq;
+    int y, rem;
+    int x_off;
+    int bit, res;
+
     dprintf("Graf_CircleFill: centre(%d,%d) edge(%d,%d) colour_op=%d context=%p\n",
             xc, yc, xe, ye, colour_op, context);
 
-    /* Render a filled circle centered at (xc, yc) with edge at (xe, ye).
+    dx = xe - xc;
+    dy = ye - yc;
+    r_sq = dx * dx + dy * dy;
+
+    if (r_sq <= 0)
+        return;
+
+    dprintf("  radius^2=%d\n", r_sq);
+
+    /* Fill each scan line using the circle equation:
+     * x_offset = floor(sqrt(r_sq - y^2))
+     * Uses integer-only square root (bit-shift method).
      */
+    for (y = 0; ; y++)
+    {
+        rem = r_sq - y * y;
+        if (rem < 0)
+            break;
+
+        /* Integer square root of rem (bit-shift method) */
+        res = 0;
+        bit = 1 << 14;
+        while (bit > rem)
+            bit >>= 2;
+        while (bit != 0)
+        {
+            if (rem >= res + bit)
+            {
+                rem -= res + bit;
+                res = (res >> 1) + bit;
+            }
+            else
+            {
+                res >>= 1;
+            }
+            bit >>= 2;
+        }
+        x_off = res;
+
+        context_hline_bounded(xc - x_off, yc + y, xc + x_off, colour_op, context);
+        if (y != 0)
+            context_hline_bounded(xc - x_off, yc - y, xc + x_off, colour_op, context);
+    }
 }
 
 void graf_circle_arc(vcontext_t *vcx, int xc, int yc, int xs, int ys, int xe, int ye, int colour_op, graphicscontext_t *context)
@@ -270,9 +332,52 @@ void graf_fill_flood(vcontext_t *vcx, int x, int y, int delim_colour, int delim_
 
 void graf_poly_hline(vcontext_t *vcx, void *buffer, int colour_op, graphicscontext_t *context)
 {
+    int32_t clip_x0, clip_x1, clip_y0, clip_y1;
+    int32_t *buf = (int32_t *)buffer;
+    int32_t count, x0, y, x1;
+    int32_t bx0, bx1;
+    int i;
+
     dprintf("Graf_PolyHLine: buffer=%p colour_op=%d context=%p\n", buffer, colour_op, context);
 
-    /* Render multiple horizontal lines from the provided buffer.
-     * Buffer format: [count, [x_left, y, x_right], ...]
-     */
+    if (context == NULL || buffer == NULL)
+        return;
+
+    count = buf[0];
+
+    clip_x0 = context->clip_x0;
+    clip_x1 = context->clip_x1;
+    clip_y0 = context->clip_y0;
+    clip_y1 = context->clip_y1;
+
+    dprintf("  clip rect: (%d,%d)-(%d,%d) count=%d\n", clip_x0, clip_y0, clip_x1, clip_y1, count);
+
+    for (i = 0; i < count; i++)
+    {
+        int32_t *entry = buf + 1 + (i * 3);
+        x0 = entry[0];
+        y  = entry[1];
+        x1 = entry[2];
+
+        /* Reject line outside clip in Y */
+        if (y < clip_y0 || y >= clip_y1)
+            continue;
+
+        /* Bound X coordinates to clip rectangle */
+        bx0 = x0;
+        if (bx0 < clip_x0)
+            bx0 = clip_x0;
+        bx1 = x1;
+        if (bx1 > clip_x1)
+            bx1 = clip_x1;
+
+        /* Reject if nothing visible after bounding */
+        if (bx0 >= bx1)
+            continue;
+
+        dprintf("  line %d: (%d,%d)-(%d,%d) bounded to (%d,%d)-(%d,%d)\n",
+                i, x0, y, x1, y, bx0, y, bx1, y);
+
+        context_hline(bx0, y, bx1, colour_op, context);
+    }
 }
