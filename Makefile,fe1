@@ -5,7 +5,7 @@
 #
 # Program specific options:
 #
-COMPONENT  = VideoSW
+COMPONENT  = VideoSW2
 
 # Specifies additional targets for startup
 INITTARGET = inittarget
