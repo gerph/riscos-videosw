@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "text.h"
+#include "vdu4_text.h"
 
 #define DEBUG
 
@@ -33,6 +34,9 @@ void text_change_destination(vcontext_t *vcx, void *base, int linelength, int ma
     vcx->log2bpp = log2bpp;
     vcx->modeflags = modeflags;
 
+    vdu4_change_destination(&vcx->vdu4, (uint8_t *)base, (uint32_t)linelength,
+                             (uint32_t)maxheight, (uint32_t)log2bpp, (uint32_t)modeflags);
+
     /* This function should prepare the text rendering system for a new target buffer.
      * It might involve clearing caches or updating pointers used for rendering.
      */
@@ -46,6 +50,9 @@ void text_define_char(vcontext_t *vcx, int char_code, void *data)
         return;
 
     /* Store or update the bitmap for the given character code */
+    if (data != NULL)
+        vdu4_define_char(&vcx->vdu4, (uint32_t)char_code, (const uint8_t *)data);
+
     /* This character data is typically an 8x8 bitmap (8 bytes).
      * The driver should store this in a way that it can be quickly accessed
      * during text_write_text_char.
@@ -63,6 +70,9 @@ void text_set_text_colour(vcontext_t *vcx, int fg, int bg, int log2bpp)
     vcx->bg_colour = bg;
     vcx->log2bpp = log2bpp;
 
+    vdu4_set_colour(&vcx->vdu4, (uint32_t)fg, (uint32_t)bg,
+                     vdu4_state_bits_per_pixel((uint32_t)log2bpp));
+
     /* Update the cached foreground and background colours.
      * The driver might pre-calculate expanded colour patterns for the current
      * bit depth to speed up rendering.
@@ -78,6 +88,9 @@ void text_write_text_char(vcontext_t *vcx, int char_code, void *addr, int x, int
 
     vcx->charx = x;
     vcx->chary = y;
+
+    if (addr != NULL)
+        vdu4_plot_char(&vcx->vdu4, (uint32_t)char_code, (uint8_t *)addr, (uint32_t)x, (uint32_t)y);
 
     /* Render the character at the specified address and coordinates.
      * 'addr' is the memory address of the top-left of the character cell.

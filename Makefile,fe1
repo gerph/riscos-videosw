@@ -40,7 +40,13 @@ OBJS       = o.modhead \
 			 o.context \
 			 o.text \
 			 o.graf \
-			 o.stub
+			 o.stub \
+			 o.vdu4_state \
+			 o.vdu4_font \
+			 o.vdu4_tables \
+			 o.vdu4_text \
+			 o.vdu4_graphics \
+			 o.vdu5_graphics
 
 # By default we don't build Fortify in.
 # To include fortify in your module, #include "fortify.h" at the top of your C files
@@ -52,10 +58,16 @@ include CModule
 
 # Additional dependencies
 $(OZDIR).module: h.modhead h.text h.graf
-$(OZDIR).context: h.context
-$(OZDIR).text: h.text h.context
-$(OZDIR).graf: h.graf h.context h.stub
+$(OZDIR).context: h.context h.vdu4_state
+$(OZDIR).text: h.text h.context h.vdu4_text h.vdu4_state
+$(OZDIR).graf: h.graf h.context h.stub h.vdu4_graphics h.vdu4_text h.vdu4_state
 $(OZDIR).stub: h.stub h.context
+$(OZDIR).vdu4_state: h.vdu4_state
+$(OZDIR).vdu4_font: h.vdu4_text h.vdu4_state
+$(OZDIR).vdu4_tables: h.vdu4_state
+$(OZDIR).vdu4_text: h.vdu4_text h.vdu4_state
+$(OZDIR).vdu4_graphics: h.vdu4_graphics h.vdu4_text h.vdu4_state
+$(OZDIR).vdu5_graphics: h.vdu5_graphics h.vdu4_state
 
 # Export rules
 # For any files you export with EXPORTS you may need to include an

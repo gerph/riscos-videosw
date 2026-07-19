@@ -38,7 +38,11 @@ vid_graf_fill_flood% = &22
 vid_graf_polyhline% = &23
 
 REM Workspace for test data
-DIM work% 511
+REM Sized generously because VideoV_Text_WriteTextChar is tested with work% itself
+REM as the destination address and linelength=1280: real character plotting writes
+REM 8 rows spaced by linelength, reaching well past the buffer start, so this must
+REM be comfortably larger than 8*1280 bytes to avoid writing outside the workspace.
+DIM work% 16383
 REM graphicscontext_t at offset 300 in workspace (clip_x0, clip_y0, clip_x1, clip_y1, func_hline_bounded, func_hline_unbounded, func_point_bounded, func_point_unbounded)
 gcontext% = work% + 300
 REM poly_hline buffer at offset 340

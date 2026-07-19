@@ -10,6 +10,7 @@
 
 #include "graf.h"
 #include "stub.h"
+#include "vdu4_graphics.h"
 
 #define DEBUG
 
@@ -28,7 +29,10 @@ void graf_set_colour1(vcontext_t *vcx, int action, unsigned int *pattern)
 
     vcx->action1 = action;
     if (pattern)
+    {
         memcpy(vcx->pattern1, pattern, sizeof(vcx->pattern1));
+        vdu4_graf_set_colour1(&vcx->vdu4, action, pattern);
+    }
 
     /* Store the primary drawing colour pattern.
      * The pattern is an 8-word block (for ECFs).
@@ -45,7 +49,10 @@ void graf_set_colour2(vcontext_t *vcx, int action, unsigned int *pattern)
 
     vcx->action2 = action;
     if (pattern)
+    {
         memcpy(vcx->pattern2, pattern, sizeof(vcx->pattern2));
+        vdu4_graf_set_colour2(&vcx->vdu4, action, pattern);
+    }
 
     /* Store the secondary drawing colour pattern.
      * This is used for background or fill operations.
@@ -85,6 +92,31 @@ void graf_change_destination(vcontext_t *vcx, int *block, int is_sprite)
     vcx->base = (void *)block[6];
     vcx->linelength = block[7];
 
+    {
+        /* Feed the same information to the renderer state, so that VDU4/VDU5
+         * character plotting has up to date destination and colour tables.
+         */
+        vdu4_destination_t destination;
+        uint32_t bpp;
+
+        memset(&destination, 0, sizeof(destination));
+        destination.mode_flags = block[0];
+        destination.scr_rcol = block[1];
+        destination.scr_brow = block[2];
+        destination.log2_bpap = block[3];
+        destination.x_eig_factor = block[4];
+        destination.y_eig_factor = block[5];
+        destination.screen_start = (uint8_t *)block[6];
+        destination.line_length = block[7];
+        destination.x_wind_limit = block[1];
+        destination.y_wind_limit = block[2];
+
+        bpp = vdu4_state_bits_per_pixel(destination.log2_bpap);
+        destination.ncolour = (bpp >= 32) ? 0xffffffffu : (1u << bpp) - 1u;
+
+        vdu4_graf_change_destination(&vcx->vdu4, &destination, is_sprite);
+    }
+
     /* This prepares the graphics driver for drawing to a new destination.
      * If is_sprite is non-zero, redirection is to a sprite.
      */
@@ -98,6 +130,7 @@ void graf_change_base(vcontext_t *vcx, void *base)
         return;
 
     vcx->base = base;
+    vcx->vdu4.destination.screen_start = (uint8_t *)base;
 
     /* Update only the base address of the current output buffer.
      * This happens when bank switching or similar occurs.

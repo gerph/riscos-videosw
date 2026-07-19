@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 
+#include "vdu4_state.h"
+
 /* Our video context */
 typedef struct vcontext_s
 {
@@ -27,6 +29,9 @@ typedef struct vcontext_s
     int fg_colour, bg_colour;
     int action1, action2;
     unsigned int pattern1[8], pattern2[8];
+
+    /* Renderer state used for actual VDU4/VDU5 character plotting */
+    vdu4_state_t vdu4;
 } vcontext_t;
 
 

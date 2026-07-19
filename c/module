@@ -91,7 +91,8 @@ _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
 int videov(_kernel_swi_regs * r, void *pw)
 {
     int reason = r->r[8];
-    vcontext_t *vcx = NULL;
+    /* Single-display system: always use the context for display 0 */
+    vcontext_t *vcx = vcxd_find(0);
 
     /* Handle reason codes in groups:
      * 0x000 - 0x00F: Text
