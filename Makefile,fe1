@@ -39,7 +39,8 @@ OBJS       = o.modhead \
 			 o.module \
 			 o.context \
 			 o.text \
-			 o.graf
+			 o.graf \
+			 o.stub
 
 # By default we don't build Fortify in.
 # To include fortify in your module, #include "fortify.h" at the top of your C files
@@ -53,7 +54,8 @@ include CModule
 $(OZDIR).module: h.modhead h.text h.graf
 $(OZDIR).context: h.context
 $(OZDIR).text: h.text h.context
-$(OZDIR).graf: h.graf h.context
+$(OZDIR).graf: h.graf h.context h.stub
+$(OZDIR).stub: h.stub h.context
 
 # Export rules
 # For any files you export with EXPORTS you may need to include an
