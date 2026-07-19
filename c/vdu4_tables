@@ -1,0 +1,210 @@
+/*******************************************************************
+ * File:        vdu4_tables
+ * Purpose:     Plain and coloured expansion table builders
+ * Author:      Gerph
+ ******************************************************************/
+
+#include <string.h>
+
+#include "vdu4_state.h"
+
+static size_t vdu4_coloured_table_size(uint32_t bpp)
+{
+    switch (bpp)
+    {
+        case 1:
+            return 256u;
+        case 2:
+            return 512u;
+        case 4:
+            return 1024u;
+        case 8:
+            return 2048u;
+        case 16:
+            return 4096u;
+        case 32:
+            return 8192u;
+        default:
+            return 0u;
+    }
+}
+
+static uint32_t vdu4_plain_table_offset(uint32_t bpp)
+{
+    return bpp << 8;
+}
+
+static void vdu4_write_plain_entry(vdu4_state_t *state, uint32_t bpp, uint32_t row)
+{
+    uint32_t offset;
+    uint8_t *dest;
+    uint32_t bit;
+    uint32_t pixel;
+    uint32_t shift;
+
+    offset = vdu4_plain_table_offset(bpp) + row * bpp;
+    dest = state->text_expand_area + offset;
+
+    memset(dest, 0, bpp);
+
+    if (bpp == 1)
+    {
+        dest[0] = (uint8_t)row;
+        return;
+    }
+
+    pixel = 0;
+    for (bit = 0; bit < 8; bit++)
+    {
+        if ((row & (1u << (7u - bit))) != 0)
+        {
+            pixel = (1u << bpp) - 1u;
+        }
+        else
+        {
+            pixel = 0;
+        }
+
+        shift = (uint32_t)(8u - bpp) - ((bit * bpp) & 7u);
+        dest[(bit * bpp) >> 3] |= (uint8_t)(pixel << shift);
+    }
+}
+
+static uint32_t vdu4_colour_for_bit(uint32_t row, uint32_t bit, uint32_t foreground, uint32_t background)
+{
+    if ((row & (1u << (7u - bit))) != 0)
+    {
+        return foreground;
+    }
+
+    return background;
+}
+
+void vdu4_tables_build_plain(vdu4_state_t *state, uint32_t bpp)
+{
+    uint32_t row;
+
+    if (bpp == 0 || bpp >= 16)
+    {
+        return;
+    }
+
+    for (row = 0; row < 256; row++)
+    {
+        vdu4_write_plain_entry(state, bpp, row);
+    }
+}
+
+void vdu4_tables_build_coloured(vdu4_state_t *state,
+                                uint32_t bpp,
+                                uint32_t foreground,
+                                uint32_t background)
+{
+    uint32_t row;
+    uint32_t bit;
+    size_t size;
+    uint8_t *dest;
+
+    size = vdu4_coloured_table_size(bpp);
+    if (size == 0)
+    {
+        return;
+    }
+
+    dest = state->text_expand_area;
+    memset(dest, 0, size);
+
+    switch (bpp)
+    {
+        case 1:
+            for (row = 0; row < 256; row++)
+            {
+                uint8_t value;
+
+                value = 0;
+                for (bit = 0; bit < 8; bit++)
+                {
+                    if (vdu4_colour_for_bit(row, bit, foreground, background) != 0)
+                    {
+                        value |= (uint8_t)(1u << (7u - bit));
+                    }
+                }
+                dest[row] = value;
+            }
+            break;
+
+        case 2:
+            for (row = 0; row < 256; row++)
+            {
+                for (bit = 0; bit < 8; bit += 4)
+                {
+                    uint8_t value;
+                    uint32_t p0;
+                    uint32_t p1;
+                    uint32_t p2;
+                    uint32_t p3;
+
+                    p0 = vdu4_colour_for_bit(row, bit + 0, foreground, background) & 3u;
+                    p1 = vdu4_colour_for_bit(row, bit + 1, foreground, background) & 3u;
+                    p2 = vdu4_colour_for_bit(row, bit + 2, foreground, background) & 3u;
+                    p3 = vdu4_colour_for_bit(row, bit + 3, foreground, background) & 3u;
+                    value = (uint8_t)((p0 << 6) | (p1 << 4) | (p2 << 2) | p3);
+                    dest[row * 2u + (bit >> 2)] = value;
+                }
+            }
+            break;
+
+        case 4:
+            for (row = 0; row < 256; row++)
+            {
+                for (bit = 0; bit < 8; bit += 2)
+                {
+                    uint8_t value;
+                    uint32_t p0;
+                    uint32_t p1;
+
+                    p0 = vdu4_colour_for_bit(row, bit + 0, foreground, background) & 15u;
+                    p1 = vdu4_colour_for_bit(row, bit + 1, foreground, background) & 15u;
+                    value = (uint8_t)((p0 << 4) | p1);
+                    dest[row * 4u + (bit >> 1)] = value;
+                }
+            }
+            break;
+
+        case 8:
+            for (row = 0; row < 256; row++)
+            {
+                for (bit = 0; bit < 8; bit++)
+                {
+                    dest[row * 8u + bit] = (uint8_t)vdu4_colour_for_bit(row, bit, foreground, background);
+                }
+            }
+            break;
+
+        case 16:
+            for (row = 0; row < 256; row++)
+            {
+                uint16_t *words;
+
+                words = (uint16_t *)(dest + row * 16u);
+                for (bit = 0; bit < 8; bit++)
+                {
+                    words[bit] = (uint16_t)vdu4_colour_for_bit(row, bit, foreground, background);
+                }
+            }
+            break;
+
+        case 32:
+            for (row = 0; row < 256; row++)
+            {
+                uint32_t *words;
+
+                words = (uint32_t *)(dest + row * 32u);
+                for (bit = 0; bit < 8; bit++)
+                {
+                    words[bit] = vdu4_colour_for_bit(row, bit, foreground, background);
+                }
+            }
+            break;
+    }
+}

@@ -1,0 +1,30 @@
+/*******************************************************************
+ * File:        vdu4_font
+ * Purpose:     Soft font character storage helpers
+ * Author:      Gerph
+ ******************************************************************/
+
+#include <string.h>
+
+#include "vdu4_text.h"
+
+/*******************************************************************
+ Function:      vdu4_define_char
+ Description:   Store an 8-byte soft character definition
+ Parameters:    state = renderer state
+                ch = character code to define
+                glyph = pointer to 8 bytes of glyph data
+ Returns:       none
+ ******************************************************************/
+void vdu4_define_char(vdu4_state_t *state, uint32_t ch, const uint8_t *glyph)
+{
+    int index;
+
+    index = vdu4_state_char_index(ch);
+    if (index < 0)
+    {
+        return;
+    }
+
+    memcpy(state->soft_font[index], glyph, VDU4_SOFT_FONT_BYTES_PER_CHAR);
+}

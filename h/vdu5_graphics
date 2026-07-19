@@ -1,0 +1,48 @@
+/*******************************************************************
+ * File:        vdu5_graphics
+ * Purpose:     Graphics-side VDU5 character plotting API
+ * Author:      Gerph
+ ******************************************************************/
+
+#ifndef RENDERER_VDU5_GRAPHICS_H
+#define RENDERER_VDU5_GRAPHICS_H
+
+#include <stdint.h>
+
+#include "vdu4_state.h"
+
+typedef struct vdu5_clip_rect
+{
+    int32_t left;
+    int32_t bottom;
+    int32_t right;
+    int32_t top;
+} vdu5_clip_rect_t;
+
+typedef struct vdu5_size
+{
+    uint32_t size_x;
+    uint32_t size_y;
+} vdu5_size_t;
+
+/*******************************************************************
+ Function:      vdu5_plot_char
+ Description:   Render a soft font character into the graphics destination
+ Parameters:    state = renderer state
+                ch = character code to plot
+                left = graphics x coordinate of the leftmost pixel
+                top = graphics y coordinate of the topmost pixel
+                size = plotted character size
+                clip = inclusive clip rectangle
+                oreor = pointer to 64-byte OR/EOR block
+ Returns:       none
+ ******************************************************************/
+void vdu5_plot_char(vdu4_state_t *state,
+                    uint32_t ch,
+                    int32_t left,
+                    int32_t top,
+                    const vdu5_size_t *size,
+                    const vdu5_clip_rect_t *clip,
+                    const uint32_t *oreor);
+
+#endif

@@ -1,0 +1,46 @@
+/*******************************************************************
+ * File:        vdu4_graphics
+ * Purpose:     Graphics-side VDU4 cache API
+ * Author:      Gerph
+ ******************************************************************/
+
+#ifndef RENDERER_VDU4_GRAPHICS_H
+#define RENDERER_VDU4_GRAPHICS_H
+
+#include <stdint.h>
+
+#include "vdu4_state.h"
+
+/*******************************************************************
+ Function:      vdu4_graf_set_colour1
+ Description:   Cache the primary OR/EOR block
+ Parameters:    state = renderer state
+                action = graphics action type, ignored by this implementation
+                oreor = pointer to 64-byte OR/EOR block
+ Returns:       none
+ ******************************************************************/
+void vdu4_graf_set_colour1(vdu4_state_t *state, uint32_t action, const uint32_t *oreor);
+
+/*******************************************************************
+ Function:      vdu4_graf_set_colour2
+ Description:   Cache the secondary OR/EOR block
+ Parameters:    state = renderer state
+                action = graphics action type, ignored by this implementation
+                oreor = pointer to 64-byte OR/EOR block
+ Returns:       none
+ ******************************************************************/
+void vdu4_graf_set_colour2(vdu4_state_t *state, uint32_t action, const uint32_t *oreor);
+
+/*******************************************************************
+ Function:      vdu4_graf_change_destination
+ Description:   Cache graphics destination state and update text state
+ Parameters:    state = renderer state
+                destination = graphics/text destination description
+                is_sprite = non-zero if the destination is a sprite
+ Returns:       none
+ ******************************************************************/
+void vdu4_graf_change_destination(vdu4_state_t *state,
+                                  const vdu4_destination_t *destination,
+                                  uint32_t is_sprite);
+
+#endif

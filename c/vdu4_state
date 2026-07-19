@@ -1,0 +1,87 @@
+/*******************************************************************
+ * File:        vdu4_state
+ * Purpose:     Shared VDU4 renderer state helpers
+ * Author:      Gerph
+ ******************************************************************/
+
+#include <string.h>
+
+#include "vdu4_state.h"
+
+/*******************************************************************
+ Function:      vdu4_state_init
+ Description:   Initialise the renderer state to a defined empty state
+ Parameters:    state = state to initialise
+ Returns:       none
+ ******************************************************************/
+void vdu4_state_init(vdu4_state_t *state)
+{
+    memset(state, 0, sizeof(*state));
+}
+
+/*******************************************************************
+ Function:      vdu4_state_char_index
+ Description:   Translate an ASCII character into a soft font index
+ Parameters:    ch = character code
+ Returns:       character index, or -1 if invalid
+ ******************************************************************/
+int vdu4_state_char_index(uint32_t ch)
+{
+    if (ch < VDU4_TEXT_FIRST_CHAR || ch > VDU4_TEXT_LAST_CHAR)
+    {
+        return -1;
+    }
+
+    return (int)(ch - VDU4_TEXT_FIRST_CHAR);
+}
+
+/*******************************************************************
+ Function:      vdu4_state_bits_per_pixel
+ Description:   Convert Log2BPAP into a bits-per-pixel value
+ Parameters:    log2_bpap = Log2 Bits Per Addressable Pixel
+ Returns:       bits per pixel, or 0 if unsupported
+ ******************************************************************/
+uint32_t vdu4_state_bits_per_pixel(uint32_t log2_bpap)
+{
+    if (log2_bpap > 5)
+    {
+        return 0;
+    }
+
+    return 1u << log2_bpap;
+}
+
+/*******************************************************************
+ Function:      vdu4_state_expand_colour
+ Description:   Replicate a pixel value across a 32-bit word
+ Parameters:    colour = pixel value
+                bpp = bits per pixel
+ Returns:       replicated 32-bit value
+ ******************************************************************/
+uint32_t vdu4_state_expand_colour(uint32_t colour, uint32_t bpp)
+{
+    uint32_t mask;
+    uint32_t value;
+    uint32_t shift;
+
+    if (bpp == 0)
+    {
+        return 0;
+    }
+
+    if (bpp >= 32)
+    {
+        return colour;
+    }
+
+    mask = (1u << bpp) - 1u;
+    value = colour & mask;
+    shift = bpp;
+    while (shift < 32)
+    {
+        value |= value << shift;
+        shift <<= 1;
+    }
+
+    return value;
+}

@@ -1,0 +1,105 @@
+/*******************************************************************
+ * File:        vdu4_state
+ * Purpose:     Shared VDU4 renderer state definitions
+ * Author:      Gerph
+ ******************************************************************/
+
+#ifndef RENDERER_VDU4_STATE_H
+#define RENDERER_VDU4_STATE_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+#define VDU4_TEXT_FIRST_CHAR 32
+#define VDU4_TEXT_LAST_CHAR 255
+#define VDU4_SOFT_FONT_CHAR_COUNT (VDU4_TEXT_LAST_CHAR - VDU4_TEXT_FIRST_CHAR + 1)
+#define VDU4_SOFT_FONT_BYTES_PER_CHAR 8
+#define VDU4_TEXT_EXPAND_AREA_SIZE (8 * 1024)
+
+#define VDU4_FLAG_GAP_MODE        (1u << 2)
+#define VDU4_FLAG_BBC_GAP_MODE    (1u << 3)
+#define VDU4_FLAG_DOUBLE_VERTICAL (1u << 5)
+
+typedef enum vdu4_plot_routine
+{
+    VDU4_PLOT_ROUTINE_1BPP = 0,
+    VDU4_PLOT_ROUTINE_2BPP = 1,
+    VDU4_PLOT_ROUTINE_4BPP = 2,
+    VDU4_PLOT_ROUTINE_8BPP = 3,
+    VDU4_PLOT_ROUTINE_16BPP = 4,
+    VDU4_PLOT_ROUTINE_32BPP = 5,
+    VDU4_PLOT_ROUTINE_1BPP_DOUBLE = 6
+} vdu4_plot_routine_t;
+
+typedef struct vdu4_destination
+{
+    uint32_t mode_flags;
+    uint32_t scr_rcol;
+    uint32_t scr_brow;
+    uint32_t ncolour;
+    uint32_t x_eig_factor;
+    uint32_t y_eig_factor;
+    uint32_t line_length;
+    uint32_t screen_size;
+    uint8_t *screen_start;
+    uint32_t log2_bpp;
+    uint32_t log2_bpap;
+    uint32_t x_wind_limit;
+    uint32_t y_wind_limit;
+} vdu4_destination_t;
+
+typedef struct vdu4_state
+{
+    vdu4_destination_t destination;
+    uint32_t x_shift_factor;
+    uint32_t n_pix;
+    uint32_t aspect_type;
+    uint32_t ram_mask_tb[32];
+
+    uint32_t text_fg_colour;
+    uint32_t text_bg_colour;
+    vdu4_plot_routine_t text_char_routine;
+    vdu4_plot_routine_t text_cursor_routine;
+    uint32_t cursor_fill;
+
+    uint32_t colour1_oreor[16];
+    uint32_t colour2_oreor[16];
+
+    uint8_t soft_font[VDU4_SOFT_FONT_CHAR_COUNT][VDU4_SOFT_FONT_BYTES_PER_CHAR];
+    uint8_t text_expand_area[VDU4_TEXT_EXPAND_AREA_SIZE];
+} vdu4_state_t;
+
+/*******************************************************************
+ Function:      vdu4_state_init
+ Description:   Initialise the renderer state to a defined empty state
+ Parameters:    state = state to initialise
+ Returns:       none
+ ******************************************************************/
+void vdu4_state_init(vdu4_state_t *state);
+
+/*******************************************************************
+ Function:      vdu4_state_char_index
+ Description:   Translate an ASCII character into a soft font index
+ Parameters:    ch = character code
+ Returns:       character index, or -1 if invalid
+ ******************************************************************/
+int vdu4_state_char_index(uint32_t ch);
+
+/*******************************************************************
+ Function:      vdu4_state_bits_per_pixel
+ Description:   Convert Log2BPAP into a bits-per-pixel value
+ Parameters:    log2_bpap = Log2 Bits Per Addressable Pixel
+ Returns:       bits per pixel, or 0 if unsupported
+ ******************************************************************/
+uint32_t vdu4_state_bits_per_pixel(uint32_t log2_bpap);
+
+/*******************************************************************
+ Function:      vdu4_state_expand_colour
+ Description:   Replicate a pixel value across a 32-bit word
+ Parameters:    colour = pixel value
+                bpp = bits per pixel
+ Returns:       replicated 32-bit value
+ ******************************************************************/
+uint32_t vdu4_state_expand_colour(uint32_t colour, uint32_t bpp);
+
+#endif

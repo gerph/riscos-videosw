@@ -1,0 +1,72 @@
+/*******************************************************************
+ * File:        vdu4_text
+ * Purpose:     Text-side VDU4 renderer API
+ * Author:      Gerph
+ ******************************************************************/
+
+#ifndef RENDERER_VDU4_TEXT_H
+#define RENDERER_VDU4_TEXT_H
+
+#include <stdint.h>
+
+#include "vdu4_state.h"
+
+/*******************************************************************
+ Function:      vdu4_define_char
+ Description:   Store an 8-byte soft character definition
+ Parameters:    state = renderer state
+                ch = character code to define
+                glyph = pointer to 8 bytes of glyph data
+ Returns:       none
+ ******************************************************************/
+void vdu4_define_char(vdu4_state_t *state, uint32_t ch, const uint8_t *glyph);
+
+/*******************************************************************
+ Function:      vdu4_change_destination
+ Description:   Cache text destination properties and rebuild text tables
+ Parameters:    state = renderer state
+                screen_start = base of output buffer
+                line_length = byte stride between rows
+                scr_brow = maximum text row index
+                log2_bpap = Log2 Bits Per Addressable Pixel
+                mode_flags = VideoV mode flags
+ Returns:       none
+ ******************************************************************/
+void vdu4_change_destination(vdu4_state_t *state,
+                             uint8_t *screen_start,
+                             uint32_t line_length,
+                             uint32_t scr_brow,
+                             uint32_t log2_bpap,
+                             uint32_t mode_flags);
+
+/*******************************************************************
+ Function:      vdu4_set_colour
+ Description:   Cache text colours and rebuild the row expansion table
+ Parameters:    state = renderer state
+                foreground = pixel value for set bits
+                background = pixel value for clear bits
+                bpp = bits per pixel
+ Returns:       none
+ ******************************************************************/
+void vdu4_set_colour(vdu4_state_t *state,
+                     uint32_t foreground,
+                     uint32_t background,
+                     uint32_t bpp);
+
+/*******************************************************************
+ Function:      vdu4_plot_char
+ Description:   Render a soft font character to the supplied destination
+ Parameters:    state = renderer state
+                ch = character code to plot
+                screen = destination address of the top-left pixel
+                char_x = character x position, for compatibility
+                char_y = character y position, for compatibility
+ Returns:       none
+ ******************************************************************/
+void vdu4_plot_char(vdu4_state_t *state,
+                    uint32_t ch,
+                    uint8_t *screen,
+                    uint32_t char_x,
+                    uint32_t char_y);
+
+#endif

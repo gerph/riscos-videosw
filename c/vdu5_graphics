@@ -1,0 +1,393 @@
+/*******************************************************************
+ * File:        vdu5_graphics
+ * Purpose:     Graphics-side VDU5 character plotting implementation
+ * Author:      Gerph
+ ******************************************************************/
+
+#include <stddef.h>
+#include <stdint.h>
+
+#include "vdu5_graphics.h"
+
+static const uint32_t vdu5_c16b_tab[16][2] =
+{
+    { 0x00000000u, 0x00000000u },
+    { 0x00000000u, 0xffff0000u },
+    { 0x00000000u, 0x0000ffffu },
+    { 0x00000000u, 0xffffffffu },
+    { 0xffff0000u, 0x00000000u },
+    { 0xffff0000u, 0xffff0000u },
+    { 0xffff0000u, 0x0000ffffu },
+    { 0xffff0000u, 0xffffffffu },
+    { 0x0000ffffu, 0x00000000u },
+    { 0x0000ffffu, 0xffff0000u },
+    { 0x0000ffffu, 0x0000ffffu },
+    { 0x0000ffffu, 0xffffffffu },
+    { 0xffffffffu, 0x00000000u },
+    { 0xffffffffu, 0xffff0000u },
+    { 0xffffffffu, 0x0000ffffu },
+    { 0xffffffffu, 0xffffffffu }
+};
+
+static int32_t vdu5_max_i32(int32_t a, int32_t b)
+{
+    return (a > b) ? a : b;
+}
+
+static int32_t vdu5_min_i32(int32_t a, int32_t b)
+{
+    return (a < b) ? a : b;
+}
+
+static uint8_t *vdu5_row_address(const vdu4_state_t *state, int32_t y)
+{
+    uint32_t row_index;
+
+    row_index = state->destination.y_wind_limit - (uint32_t)y;
+    return state->destination.screen_start + row_index * state->destination.line_length;
+}
+
+static uint32_t vdu5_extract_packed_pixel(const uint8_t *row, uint32_t bpp, uint32_t pixel_index)
+{
+    uint32_t bit_offset;
+    uint32_t shift;
+    uint32_t mask;
+
+    if (bpp >= 32)
+    {
+        return ((const uint32_t *)row)[pixel_index];
+    }
+    if (bpp == 16)
+    {
+        return ((const uint16_t *)row)[pixel_index];
+    }
+    if (bpp == 8)
+    {
+        return row[pixel_index];
+    }
+
+    bit_offset = pixel_index * bpp;
+    shift = 8u - bpp - (bit_offset & 7u);
+    mask = (1u << bpp) - 1u;
+    return (row[bit_offset >> 3] >> shift) & mask;
+}
+
+static uint32_t vdu5_extract_oreor_pixel(uint32_t packed, uint32_t bpp, int32_t x)
+{
+    uint32_t bit_offset;
+    uint32_t shift;
+    uint32_t mask;
+
+    if (bpp >= 32)
+    {
+        return packed;
+    }
+
+    mask = (1u << bpp) - 1u;
+    bit_offset = ((uint32_t)x * bpp) & 31u;
+    shift = 32u - bpp - bit_offset;
+
+    return (packed >> shift) & mask;
+}
+
+static uint32_t vdu5_read_pixel(const uint8_t *row, uint32_t bpp, int32_t x)
+{
+    uint32_t bit_offset;
+    uint32_t shift;
+    uint32_t mask;
+
+    if (bpp >= 32)
+    {
+        return ((const uint32_t *)row)[x];
+    }
+    if (bpp == 16)
+    {
+        return ((const uint16_t *)row)[x];
+    }
+    if (bpp == 8)
+    {
+        return row[x];
+    }
+
+    bit_offset = (uint32_t)x * bpp;
+    shift = 8u - bpp - (bit_offset & 7u);
+    mask = (1u << bpp) - 1u;
+
+    return (row[bit_offset >> 3] >> shift) & mask;
+}
+
+static void vdu5_write_pixel(uint8_t *row, uint32_t bpp, int32_t x, uint32_t value)
+{
+    uint32_t bit_offset;
+    uint32_t shift;
+    uint32_t mask;
+    uint8_t *byte;
+
+    if (bpp >= 32)
+    {
+        ((uint32_t *)row)[x] = value;
+        return;
+    }
+    if (bpp == 16)
+    {
+        ((uint16_t *)row)[x] = (uint16_t)value;
+        return;
+    }
+    if (bpp == 8)
+    {
+        row[x] = (uint8_t)value;
+        return;
+    }
+
+    bit_offset = (uint32_t)x * bpp;
+    shift = 8u - bpp - (bit_offset & 7u);
+    mask = ((1u << bpp) - 1u) << shift;
+    byte = row + (bit_offset >> 3);
+    *byte = (uint8_t)((*byte & ~mask) | ((value << shift) & mask));
+}
+
+static void vdu5_apply_set_pixel(vdu4_state_t *state, const uint32_t *oreor, int32_t x, int32_t y)
+{
+    uint32_t bpp;
+    uint8_t *row;
+    const uint32_t *row_oreor;
+    uint32_t pixel_mask;
+    uint32_t old_pixel;
+    uint32_t or_pixel;
+    uint32_t eor_pixel;
+
+    bpp = vdu4_state_bits_per_pixel(state->destination.log2_bpap);
+    row = vdu5_row_address(state, y);
+    row_oreor = oreor + ((((int32_t)state->destination.y_wind_limit - y) & 7) << 1);
+    pixel_mask = (bpp >= 32) ? 0xffffffffu : ((1u << bpp) - 1u);
+
+    old_pixel = vdu5_read_pixel(row, bpp, x);
+    or_pixel = vdu5_extract_oreor_pixel(row_oreor[0], bpp, x);
+    eor_pixel = vdu5_extract_oreor_pixel(row_oreor[1], bpp, x);
+
+    vdu5_write_pixel(row, bpp, x, ((old_pixel | or_pixel) ^ eor_pixel) & pixel_mask);
+}
+
+static const uint8_t *vdu5_fast_row_data(vdu4_state_t *state,
+                                         uint32_t bpp,
+                                         uint8_t glyph_row,
+                                         uint32_t expanded[4])
+{
+    if (bpp <= 8)
+    {
+        return state->text_expand_area + (bpp << 8) + (uint32_t)glyph_row * bpp;
+    }
+
+    if (bpp == 16)
+    {
+        expanded[0] = vdu5_c16b_tab[glyph_row >> 4][0];
+        expanded[1] = vdu5_c16b_tab[glyph_row >> 4][1];
+        expanded[2] = vdu5_c16b_tab[glyph_row & 15u][0];
+        expanded[3] = vdu5_c16b_tab[glyph_row & 15u][1];
+        return (const uint8_t *)expanded;
+    }
+
+    return NULL;
+}
+
+static void vdu5_plot_fast(vdu4_state_t *state,
+                           const uint8_t *glyph,
+                           int32_t left,
+                           int32_t top,
+                           int32_t clipped_left,
+                           int32_t clipped_right,
+                           int32_t clipped_top,
+                           int32_t clipped_bottom,
+                           uint32_t size_y,
+                           const uint32_t *oreor)
+{
+    uint32_t bpp;
+    int32_t y;
+    uint32_t expanded[4];
+
+    bpp = vdu4_state_bits_per_pixel(state->destination.log2_bpap);
+
+    for (y = clipped_top; y >= clipped_bottom; y--)
+    {
+        uint32_t row_from_top;
+        uint32_t glyph_row_index;
+        uint8_t glyph_row;
+        uint32_t left_clip;
+        uint32_t width;
+        uint8_t mask;
+        const uint8_t *expanded_row;
+        int32_t x;
+
+        row_from_top = (uint32_t)(top - y);
+        glyph_row_index = (size_y == 16u) ? (row_from_top >> 1) : row_from_top;
+        glyph_row = glyph[glyph_row_index];
+
+        left_clip = (uint32_t)(clipped_left - left);
+        width = (uint32_t)(clipped_right - clipped_left + 1);
+        mask = (uint8_t)(0xffu >> left_clip);
+        if (width < 8u)
+        {
+            mask &= (uint8_t)~(0xffu >> (left_clip + width));
+        }
+        glyph_row &= mask;
+
+        if (glyph_row == 0)
+        {
+            continue;
+        }
+
+        expanded_row = vdu5_fast_row_data(state, bpp, glyph_row, expanded);
+        for (x = clipped_left; x <= clipped_right; x++)
+        {
+            uint32_t column;
+            uint32_t value;
+
+            column = (uint32_t)(x - left);
+            if (bpp == 32)
+            {
+                if ((glyph_row & (uint8_t)(1u << (7u - column))) == 0)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                value = vdu5_extract_packed_pixel(expanded_row, bpp, column);
+                if (value == 0)
+                {
+                    continue;
+                }
+            }
+
+            vdu5_apply_set_pixel(state, oreor, x, y);
+        }
+    }
+}
+
+static void vdu5_plot_scaled(vdu4_state_t *state,
+                             const uint8_t *glyph,
+                             int32_t left,
+                             int32_t top,
+                             int32_t clipped_left,
+                             int32_t clipped_right,
+                             int32_t clipped_top,
+                             int32_t clipped_bottom,
+                             const vdu5_size_t *size,
+                             const uint32_t *oreor)
+{
+    int32_t y;
+
+    for (y = clipped_top; y >= clipped_bottom; y--)
+    {
+        uint32_t row_from_top;
+        uint32_t glyph_row_index;
+        uint8_t glyph_row;
+        int32_t x;
+
+        row_from_top = (uint32_t)(top - y);
+        glyph_row_index = (row_from_top * 8u) / size->size_y;
+        glyph_row = glyph[glyph_row_index];
+
+        for (x = clipped_left; x <= clipped_right; x++)
+        {
+            uint32_t column_from_left;
+            uint32_t glyph_column;
+
+            column_from_left = (uint32_t)(x - left);
+            glyph_column = (column_from_left * 8u) / size->size_x;
+
+            if ((glyph_row & (uint8_t)(1u << (7u - glyph_column))) == 0)
+            {
+                continue;
+            }
+
+            vdu5_apply_set_pixel(state, oreor, x, y);
+        }
+    }
+}
+
+/*******************************************************************
+ Function:      vdu5_plot_char
+ Description:   Render a soft font character into the graphics destination
+ Parameters:    state = renderer state
+                ch = character code to plot
+                left = graphics x coordinate of the leftmost pixel
+                top = graphics y coordinate of the topmost pixel
+                size = plotted character size
+                clip = inclusive clip rectangle
+                oreor = pointer to 64-byte OR/EOR block
+ Returns:       none
+ ******************************************************************/
+void vdu5_plot_char(vdu4_state_t *state,
+                    uint32_t ch,
+                    int32_t left,
+                    int32_t top,
+                    const vdu5_size_t *size,
+                    const vdu5_clip_rect_t *clip,
+                    const uint32_t *oreor)
+{
+    int index;
+    const uint8_t *glyph;
+    int32_t right;
+    int32_t bottom;
+    int32_t clipped_left;
+    int32_t clipped_right;
+    int32_t clipped_top;
+    int32_t clipped_bottom;
+
+    if (state == NULL || size == NULL || clip == NULL || oreor == NULL)
+    {
+        return;
+    }
+    if (size->size_x == 0u || size->size_y == 0u)
+    {
+        return;
+    }
+
+    index = vdu4_state_char_index(ch);
+    if (index < 0)
+    {
+        return;
+    }
+
+    right = left + (int32_t)size->size_x - 1;
+    bottom = top - (int32_t)size->size_y + 1;
+
+    clipped_left = vdu5_max_i32(left, clip->left);
+    clipped_right = vdu5_min_i32(right, clip->right);
+    clipped_top = vdu5_min_i32(top, clip->top);
+    clipped_bottom = vdu5_max_i32(bottom, clip->bottom);
+
+    if (clipped_left > clipped_right || clipped_bottom > clipped_top)
+    {
+        return;
+    }
+
+    glyph = state->soft_font[index];
+
+    if (size->size_x == 8u && (size->size_y == 8u || size->size_y == 16u))
+    {
+        vdu5_plot_fast(state,
+                       glyph,
+                       left,
+                       top,
+                       clipped_left,
+                       clipped_right,
+                       clipped_top,
+                       clipped_bottom,
+                       size->size_y,
+                       oreor);
+        return;
+    }
+
+    vdu5_plot_scaled(state,
+                     glyph,
+                     left,
+                     top,
+                     clipped_left,
+                     clipped_right,
+                     clipped_top,
+                     clipped_bottom,
+                     size,
+                     oreor);
+}

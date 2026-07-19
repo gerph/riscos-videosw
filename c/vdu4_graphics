@@ -1,0 +1,118 @@
+/*******************************************************************
+ * File:        vdu4_graphics
+ * Purpose:     Graphics-side destination and colour cache handling
+ * Author:      Gerph
+ ******************************************************************/
+
+#include <string.h>
+
+#include "vdu4_graphics.h"
+#include "vdu4_text.h"
+
+static void vdu4_init_ram_mask_table(vdu4_state_t *state)
+{
+    uint32_t bpp;
+    uint32_t mask;
+    uint32_t i;
+
+    memset(state->ram_mask_tb, 0, sizeof(state->ram_mask_tb));
+
+    bpp = vdu4_state_bits_per_pixel(state->destination.log2_bpap);
+    if (bpp == 0)
+    {
+        return;
+    }
+
+    if (bpp == 32)
+    {
+        state->ram_mask_tb[0] = 0xffffffffu;
+        return;
+    }
+
+    mask = (1u << bpp) - 1u;
+    for (i = 0; i < 32; i++)
+    {
+        state->ram_mask_tb[i] = mask;
+        mask <<= bpp;
+        if (mask == 0)
+        {
+            break;
+        }
+    }
+}
+
+static uint32_t vdu4_aspect_type(uint32_t x_eig_factor, uint32_t y_eig_factor)
+{
+    while (x_eig_factor != 0 && y_eig_factor != 0)
+    {
+        x_eig_factor--;
+        y_eig_factor--;
+    }
+
+    if (x_eig_factor != 0)
+    {
+        x_eig_factor = 1;
+    }
+    if (y_eig_factor != 0)
+    {
+        y_eig_factor = 1;
+    }
+
+    return x_eig_factor | (y_eig_factor << 8);
+}
+
+/*******************************************************************
+ Function:      vdu4_graf_set_colour1
+ Description:   Cache the primary OR/EOR block
+ Parameters:    state = renderer state
+                action = graphics action type, ignored by this implementation
+                oreor = pointer to 64-byte OR/EOR block
+ Returns:       none
+ ******************************************************************/
+void vdu4_graf_set_colour1(vdu4_state_t *state, uint32_t action, const uint32_t *oreor)
+{
+    (void)action;
+    memcpy(state->colour1_oreor, oreor, sizeof(state->colour1_oreor));
+}
+
+/*******************************************************************
+ Function:      vdu4_graf_set_colour2
+ Description:   Cache the secondary OR/EOR block
+ Parameters:    state = renderer state
+                action = graphics action type, ignored by this implementation
+                oreor = pointer to 64-byte OR/EOR block
+ Returns:       none
+ ******************************************************************/
+void vdu4_graf_set_colour2(vdu4_state_t *state, uint32_t action, const uint32_t *oreor)
+{
+    (void)action;
+    memcpy(state->colour2_oreor, oreor, sizeof(state->colour2_oreor));
+}
+
+/*******************************************************************
+ Function:      vdu4_graf_change_destination
+ Description:   Cache graphics destination state and update text state
+ Parameters:    state = renderer state
+                destination = graphics/text destination description
+                is_sprite = non-zero if the destination is a sprite
+ Returns:       none
+ ******************************************************************/
+void vdu4_graf_change_destination(vdu4_state_t *state,
+                                  const vdu4_destination_t *destination,
+                                  uint32_t is_sprite)
+{
+    (void)is_sprite;
+
+    state->destination = *destination;
+    state->x_shift_factor = 5u - destination->log2_bpap;
+    state->n_pix = (32u >> destination->log2_bpap) - 1u;
+    state->aspect_type = vdu4_aspect_type(destination->x_eig_factor, destination->y_eig_factor);
+    vdu4_init_ram_mask_table(state);
+
+    vdu4_change_destination(state,
+                            destination->screen_start,
+                            destination->line_length,
+                            destination->scr_brow,
+                            destination->log2_bpap,
+                            destination->mode_flags);
+}
