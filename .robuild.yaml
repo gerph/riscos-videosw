@@ -55,9 +55,9 @@ jobs:
       - RMLoad rm32.VideoSW2
 
       # Insert any testing here...
-      #- echo
-      #- echo *** Test that the module works ***
-      #- /TestModule
+      - echo
+      - echo *** Test that the module works ***
+      - /test_videosw
 
       - echo
       - echo *** Kill the module ***
