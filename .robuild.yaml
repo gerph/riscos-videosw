@@ -52,7 +52,7 @@ jobs:
       # Tests - loading to check that it starts up
       - echo
       - echo *** Load the module ***
-      - RMLoad rm32.VideoSW
+      - RMLoad rm32.VideoSW2
 
       # Insert any testing here...
       #- echo
